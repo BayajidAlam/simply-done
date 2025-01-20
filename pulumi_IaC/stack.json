@@ -1,0 +1,1171 @@
+{
+    "version": 3,
+    "deployment": {
+        "manifest": {
+            "time": "2025-01-20T18:07:31.52419194+06:00",
+            "magic": "7c53c69df7094e39d5562ed2abf1e12099c2c54a7b9b411faca1dcb7ec1fef8a",
+            "version": "v3.145.0"
+        },
+        "secrets_providers": {
+            "type": "service",
+            "state": {
+                "url": "https://api.pulumi.com",
+                "owner": "BayajidAlam",
+                "project": "simply-done",
+                "stack": "simply-dev"
+            }
+        },
+        "metadata": {},
+        "resources": [
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "custom": false,
+                "type": "pulumi:pulumi:Stack",
+                "created": "2025-01-20T11:08:31.458350286Z",
+                "modified": "2025-01-20T11:08:31.458350286Z",
+                "sourcePosition": "project:///node_modules/@pulumi/runtime/stack.ts#38,23"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2",
+                "custom": true,
+                "id": "e6357f7b-28e2-4e41-ad13-de3828227512",
+                "type": "pulumi:providers:aws",
+                "inputs": {
+                    "__internal": {},
+                    "version": "5.9.2"
+                },
+                "outputs": {
+                    "version": "5.9.2"
+                },
+                "created": "2025-01-20T11:08:33.207078665Z",
+                "modified": "2025-01-20T11:08:33.207078665Z"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/keyPair:KeyPair::existing-key",
+                "custom": true,
+                "id": "MyKeyPair",
+                "type": "aws:ec2/keyPair:KeyPair",
+                "outputs": {
+                    "__meta": "{\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:key-pair/MyKeyPair",
+                    "fingerprint": "65:6f:81:2e:14:1f:bc:7e:a0:62:ec:a3:86:21:91:e2:be:de:70:d0",
+                    "id": "MyKeyPair",
+                    "keyName": "MyKeyPair",
+                    "keyNamePrefix": "",
+                    "keyPairId": "key-0507715973decf41f",
+                    "tags": {},
+                    "tagsAll": {}
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "external": true,
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "sourcePosition": "project:///node_modules/@pulumi/ec2/keyPair.ts#48,16"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/eip:Eip::todo-infra-nat-eip",
+                "custom": true,
+                "id": "eipalloc-0d04d7c1aadff69c4",
+                "type": "aws:ec2/eip:Eip",
+                "inputs": {
+                    "__defaults": [],
+                    "vpc": true
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"delete\":180000000000,\"read\":900000000000,\"update\":300000000000}}",
+                    "allocationId": "eipalloc-0d04d7c1aadff69c4",
+                    "associationId": "eipassoc-057d197888711f64e",
+                    "carrierIp": "",
+                    "customerOwnedIp": "",
+                    "customerOwnedIpv4Pool": "",
+                    "domain": "vpc",
+                    "id": "eipalloc-0d04d7c1aadff69c4",
+                    "instance": "",
+                    "networkBorderGroup": "ap-southeast-1",
+                    "networkInterface": "eni-08e3206020ab4797d",
+                    "privateDns": "ip-10-10-1-189.ap-southeast-1.compute.internal",
+                    "privateIp": "10.10.1.189",
+                    "publicDns": "ec2-18-139-9-119.ap-southeast-1.compute.amazonaws.com",
+                    "publicIp": "18.139.9.119",
+                    "publicIpv4Pool": "amazon",
+                    "tags": {},
+                    "tagsAll": {},
+                    "vpc": true
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "created": "2025-01-20T11:41:47.624649672Z",
+                "modified": "2025-01-20T11:54:39.980751602Z",
+                "sourcePosition": "project:///index.ts#120,13"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc",
+                "custom": true,
+                "id": "vpc-068b82124942a69ff",
+                "type": "aws:ec2/vpc:Vpc",
+                "inputs": {
+                    "__defaults": [
+                        "instanceTenancy"
+                    ],
+                    "cidrBlock": "10.10.0.0/16",
+                    "enableDnsHostnames": true,
+                    "enableDnsSupport": true,
+                    "instanceTenancy": "default",
+                    "tags": {
+                        "Name": "todo-infra-vpc",
+                        "__defaults": []
+                    }
+                },
+                "outputs": {
+                    "__meta": "{\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:vpc/vpc-068b82124942a69ff",
+                    "assignGeneratedIpv6CidrBlock": false,
+                    "cidrBlock": "10.10.0.0/16",
+                    "defaultNetworkAclId": "acl-00a870967f0d9a5ea",
+                    "defaultRouteTableId": "rtb-016c1fd7e4c366802",
+                    "defaultSecurityGroupId": "sg-0eb2efbf90a2cf964",
+                    "dhcpOptionsId": "dopt-058173514b87eec97",
+                    "enableClassiclink": false,
+                    "enableClassiclinkDnsSupport": false,
+                    "enableDnsHostnames": true,
+                    "enableDnsSupport": true,
+                    "id": "vpc-068b82124942a69ff",
+                    "instanceTenancy": "default",
+                    "ipv6AssociationId": "",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockNetworkBorderGroup": "",
+                    "ipv6IpamPoolId": "",
+                    "ipv6NetmaskLength": 0,
+                    "mainRouteTableId": "rtb-016c1fd7e4c366802",
+                    "ownerId": "372332707615",
+                    "tags": {
+                        "Name": "todo-infra-vpc"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-vpc"
+                    }
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "created": "2025-01-20T11:41:58.716827553Z",
+                "modified": "2025-01-20T11:41:58.716827553Z",
+                "sourcePosition": "project:///index.ts#51,13"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/subnet:Subnet::todo-infra-private-app-sn-2",
+                "custom": true,
+                "id": "subnet-0098b1e6552c87ae2",
+                "type": "aws:ec2/subnet:Subnet",
+                "inputs": {
+                    "__defaults": [
+                        "assignIpv6AddressOnCreation",
+                        "enableDns64",
+                        "enableResourceNameDnsARecordOnLaunch",
+                        "enableResourceNameDnsAaaaRecordOnLaunch",
+                        "ipv6Native"
+                    ],
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1b",
+                    "cidrBlock": "10.10.4.0/24",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "ipv6Native": false,
+                    "mapPublicIpOnLaunch": false,
+                    "tags": {
+                        "Name": "todo-infra-private-app-sn-2",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":1200000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:subnet/subnet-0098b1e6552c87ae2",
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1b",
+                    "availabilityZoneId": "apse1-az1",
+                    "cidrBlock": "10.10.4.0/24",
+                    "customerOwnedIpv4Pool": "",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "id": "subnet-0098b1e6552c87ae2",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockAssociationId": "",
+                    "ipv6Native": false,
+                    "mapCustomerOwnedIpOnLaunch": false,
+                    "mapPublicIpOnLaunch": false,
+                    "outpostArn": "",
+                    "ownerId": "372332707615",
+                    "privateDnsHostnameTypeOnLaunch": "ip-name",
+                    "tags": {
+                        "Name": "todo-infra-private-app-sn-2"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-private-app-sn-2"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:00.169739597Z",
+                "modified": "2025-01-20T11:42:00.169739597Z",
+                "sourcePosition": "project:///index.ts#80,24"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/internetGateway:InternetGateway::todo-infra-igw",
+                "custom": true,
+                "id": "igw-00b3510225024fd73",
+                "type": "aws:ec2/internetGateway:InternetGateway",
+                "inputs": {
+                    "__defaults": [],
+                    "tags": {
+                        "Name": "todo-infra-igw",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:internet-gateway/igw-00b3510225024fd73",
+                    "id": "igw-00b3510225024fd73",
+                    "ownerId": "372332707615",
+                    "tags": {
+                        "Name": "todo-infra-igw"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-igw"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:01.05709563Z",
+                "modified": "2025-01-20T11:42:01.05709563Z",
+                "sourcePosition": "project:///index.ts#96,13"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/subnet:Subnet::todo-infra-private-app-sn-1",
+                "custom": true,
+                "id": "subnet-01faaee8d977419d4",
+                "type": "aws:ec2/subnet:Subnet",
+                "inputs": {
+                    "__defaults": [
+                        "assignIpv6AddressOnCreation",
+                        "enableDns64",
+                        "enableResourceNameDnsARecordOnLaunch",
+                        "enableResourceNameDnsAaaaRecordOnLaunch",
+                        "ipv6Native"
+                    ],
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1a",
+                    "cidrBlock": "10.10.3.0/24",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "ipv6Native": false,
+                    "mapPublicIpOnLaunch": false,
+                    "tags": {
+                        "Name": "todo-infra-private-app-sn-1",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":1200000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:subnet/subnet-01faaee8d977419d4",
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1a",
+                    "availabilityZoneId": "apse1-az2",
+                    "cidrBlock": "10.10.3.0/24",
+                    "customerOwnedIpv4Pool": "",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "id": "subnet-01faaee8d977419d4",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockAssociationId": "",
+                    "ipv6Native": false,
+                    "mapCustomerOwnedIpOnLaunch": false,
+                    "mapPublicIpOnLaunch": false,
+                    "outpostArn": "",
+                    "ownerId": "372332707615",
+                    "privateDnsHostnameTypeOnLaunch": "ip-name",
+                    "tags": {
+                        "Name": "todo-infra-private-app-sn-1"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-private-app-sn-1"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:01.483589766Z",
+                "modified": "2025-01-20T11:42:01.483589766Z",
+                "sourcePosition": "project:///index.ts#73,24"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/subnet:Subnet::todo-infra-private-db-sn-1",
+                "custom": true,
+                "id": "subnet-0a92ebee5675cc965",
+                "type": "aws:ec2/subnet:Subnet",
+                "inputs": {
+                    "__defaults": [
+                        "assignIpv6AddressOnCreation",
+                        "enableDns64",
+                        "enableResourceNameDnsARecordOnLaunch",
+                        "enableResourceNameDnsAaaaRecordOnLaunch",
+                        "ipv6Native"
+                    ],
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1c",
+                    "cidrBlock": "10.10.5.0/24",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "ipv6Native": false,
+                    "mapPublicIpOnLaunch": false,
+                    "tags": {
+                        "Name": "todo-infra-private-db-sn-1",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":1200000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:subnet/subnet-0a92ebee5675cc965",
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1c",
+                    "availabilityZoneId": "apse1-az3",
+                    "cidrBlock": "10.10.5.0/24",
+                    "customerOwnedIpv4Pool": "",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "id": "subnet-0a92ebee5675cc965",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockAssociationId": "",
+                    "ipv6Native": false,
+                    "mapCustomerOwnedIpOnLaunch": false,
+                    "mapPublicIpOnLaunch": false,
+                    "outpostArn": "",
+                    "ownerId": "372332707615",
+                    "privateDnsHostnameTypeOnLaunch": "ip-name",
+                    "tags": {
+                        "Name": "todo-infra-private-db-sn-1"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-private-db-sn-1"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:02.017971175Z",
+                "modified": "2025-01-20T11:42:02.017971175Z",
+                "sourcePosition": "project:///index.ts#88,28"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/routeTable:RouteTable::todo-infra-private-rt-1",
+                "custom": true,
+                "id": "rtb-08874d7c147c95d5c",
+                "type": "aws:ec2/routeTable:RouteTable",
+                "inputs": {
+                    "__defaults": [],
+                    "tags": {
+                        "Name": "todo-infra-private-rt-1",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":300000000000,\"delete\":300000000000,\"update\":120000000000}}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:route-table/rtb-08874d7c147c95d5c",
+                    "id": "rtb-08874d7c147c95d5c",
+                    "ownerId": "372332707615",
+                    "propagatingVgws": [],
+                    "routes": [],
+                    "tags": {
+                        "Name": "todo-infra-private-rt-1"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-private-rt-1"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:02.120988083Z",
+                "modified": "2025-01-20T11:42:02.120988083Z",
+                "sourcePosition": "project:///index.ts#115,27"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:lb/targetGroup:TargetGroup::todo-infra-tg",
+                "custom": true,
+                "id": "arn:aws:elasticloadbalancing:ap-southeast-1:372332707615:targetgroup/todo-infra-tg-6f9d19d/b6122643506a72e4",
+                "type": "aws:lb/targetGroup:TargetGroup",
+                "inputs": {
+                    "__defaults": [
+                        "connectionTermination",
+                        "deregistrationDelay",
+                        "lambdaMultiValueHeadersEnabled",
+                        "name",
+                        "proxyProtocolV2",
+                        "slowStart"
+                    ],
+                    "connectionTermination": false,
+                    "deregistrationDelay": 300,
+                    "healthCheck": {
+                        "__defaults": [
+                            "enabled",
+                            "port",
+                            "protocol"
+                        ],
+                        "enabled": true,
+                        "healthyThreshold": 2,
+                        "interval": 30,
+                        "matcher": "200",
+                        "path": "/health",
+                        "port": "traffic-port",
+                        "protocol": "HTTP",
+                        "timeout": 20,
+                        "unhealthyThreshold": 3
+                    },
+                    "lambdaMultiValueHeadersEnabled": false,
+                    "name": "todo-infra-tg-6f9d19d",
+                    "port": 5000,
+                    "protocol": "HTTP",
+                    "proxyProtocolV2": false,
+                    "slowStart": 0,
+                    "tags": {
+                        "Name": "todo-infra-tg",
+                        "__defaults": []
+                    },
+                    "targetType": "instance",
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:372332707615:targetgroup/todo-infra-tg-6f9d19d/b6122643506a72e4",
+                    "arnSuffix": "targetgroup/todo-infra-tg-6f9d19d/b6122643506a72e4",
+                    "connectionTermination": false,
+                    "deregistrationDelay": 300,
+                    "healthCheck": {
+                        "enabled": true,
+                        "healthyThreshold": 2,
+                        "interval": 30,
+                        "matcher": "200",
+                        "path": "/health",
+                        "port": "traffic-port",
+                        "protocol": "HTTP",
+                        "timeout": 20,
+                        "unhealthyThreshold": 3
+                    },
+                    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:372332707615:targetgroup/todo-infra-tg-6f9d19d/b6122643506a72e4",
+                    "lambdaMultiValueHeadersEnabled": false,
+                    "loadBalancingAlgorithmType": "round_robin",
+                    "name": "todo-infra-tg-6f9d19d",
+                    "port": 5000,
+                    "protocol": "HTTP",
+                    "protocolVersion": "HTTP1",
+                    "proxyProtocolV2": false,
+                    "slowStart": 0,
+                    "stickiness": {
+                        "cookieDuration": 86400,
+                        "cookieName": "",
+                        "enabled": false,
+                        "type": "lb_cookie"
+                    },
+                    "tags": {
+                        "Name": "todo-infra-tg"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-tg"
+                    },
+                    "targetType": "instance",
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:04.349065587Z",
+                "modified": "2025-01-20T11:42:04.349065587Z",
+                "sourcePosition": "project:///index.ts#354,21"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/securityGroup:SecurityGroup::todo-infra-public-sn-sg",
+                "custom": true,
+                "id": "sg-0cf57912633600e09",
+                "type": "aws:ec2/securityGroup:SecurityGroup",
+                "inputs": {
+                    "__defaults": [
+                        "name",
+                        "revokeRulesOnDelete"
+                    ],
+                    "description": "Managed by Pulumi",
+                    "egress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 0,
+                            "protocol": "-1",
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "ingress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 80,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 80
+                        },
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 22,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 22
+                        }
+                    ],
+                    "name": "todo-infra-public-sn-sg-27207a8",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "todo-infra-public-sn-sg",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":900000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:security-group/sg-0cf57912633600e09",
+                    "description": "Managed by Pulumi",
+                    "egress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 0,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "-1",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "id": "sg-0cf57912633600e09",
+                    "ingress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 80,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 80
+                        },
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 22,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 22
+                        }
+                    ],
+                    "name": "todo-infra-public-sn-sg-27207a8",
+                    "namePrefix": "",
+                    "ownerId": "372332707615",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "todo-infra-public-sn-sg"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-public-sn-sg"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:04.781356823Z",
+                "modified": "2025-01-20T11:54:39.968245201Z",
+                "sourcePosition": "project:///index.ts#151,31"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/securityGroup:SecurityGroup::todo-infra-alb-sg",
+                "custom": true,
+                "id": "sg-079c057f800503eff",
+                "type": "aws:ec2/securityGroup:SecurityGroup",
+                "inputs": {
+                    "__defaults": [
+                        "name",
+                        "revokeRulesOnDelete"
+                    ],
+                    "description": "Managed by Pulumi",
+                    "egress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 0,
+                            "protocol": "-1",
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "ingress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 80,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 80
+                        },
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 443,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 443
+                        }
+                    ],
+                    "name": "todo-infra-alb-sg-c2e23a2",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "todo-infra-alb-sg",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":900000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:security-group/sg-079c057f800503eff",
+                    "description": "Managed by Pulumi",
+                    "egress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 0,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "-1",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "id": "sg-079c057f800503eff",
+                    "ingress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 80,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 80
+                        },
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 443,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 443
+                        }
+                    ],
+                    "name": "todo-infra-alb-sg-c2e23a2",
+                    "namePrefix": "",
+                    "ownerId": "372332707615",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "todo-infra-alb-sg"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-alb-sg"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:06.014003624Z",
+                "modified": "2025-01-20T11:42:06.014003624Z",
+                "sourcePosition": "project:///index.ts#180,26"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/subnet:Subnet::todo-infra-public-sn-1",
+                "custom": true,
+                "id": "subnet-0aeea38a5b2eca5ad",
+                "type": "aws:ec2/subnet:Subnet",
+                "inputs": {
+                    "__defaults": [
+                        "assignIpv6AddressOnCreation",
+                        "enableDns64",
+                        "enableResourceNameDnsARecordOnLaunch",
+                        "enableResourceNameDnsAaaaRecordOnLaunch",
+                        "ipv6Native"
+                    ],
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1a",
+                    "cidrBlock": "10.10.1.0/24",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "ipv6Native": false,
+                    "mapPublicIpOnLaunch": true,
+                    "tags": {
+                        "Name": "todo-infra-public-sn-1",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":1200000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:subnet/subnet-0aeea38a5b2eca5ad",
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1a",
+                    "availabilityZoneId": "apse1-az2",
+                    "cidrBlock": "10.10.1.0/24",
+                    "customerOwnedIpv4Pool": "",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "id": "subnet-0aeea38a5b2eca5ad",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockAssociationId": "",
+                    "ipv6Native": false,
+                    "mapCustomerOwnedIpOnLaunch": false,
+                    "mapPublicIpOnLaunch": true,
+                    "outpostArn": "",
+                    "ownerId": "372332707615",
+                    "privateDnsHostnameTypeOnLaunch": "ip-name",
+                    "tags": {
+                        "Name": "todo-infra-public-sn-1"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-public-sn-1"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:11.0593506Z",
+                "modified": "2025-01-20T11:42:11.0593506Z",
+                "sourcePosition": "project:///index.ts#58,23"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/securityGroup:SecurityGroup::todo-infra-app-sg",
+                "custom": true,
+                "id": "sg-079f84f36f193c20a",
+                "type": "aws:ec2/securityGroup:SecurityGroup",
+                "inputs": {
+                    "__defaults": [
+                        "name",
+                        "revokeRulesOnDelete"
+                    ],
+                    "description": "Managed by Pulumi",
+                    "egress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "fromPort": 0,
+                            "protocol": "-1",
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "ingress": [
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "fromPort": 5000,
+                            "protocol": "tcp",
+                            "securityGroups": [
+                                "sg-079c057f800503eff"
+                            ],
+                            "self": false,
+                            "toPort": 5000
+                        },
+                        {
+                            "__defaults": [
+                                "self"
+                            ],
+                            "cidrBlocks": [
+                                "10.10.1.0/24"
+                            ],
+                            "fromPort": 22,
+                            "protocol": "tcp",
+                            "self": false,
+                            "toPort": 22
+                        }
+                    ],
+                    "name": "todo-infra-app-sg-e4879c8",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "todo-infra-app-sg",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":900000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:security-group/sg-079f84f36f193c20a",
+                    "description": "Managed by Pulumi",
+                    "egress": [
+                        {
+                            "cidrBlocks": [
+                                "0.0.0.0/0"
+                            ],
+                            "description": "",
+                            "fromPort": 0,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "-1",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 0
+                        }
+                    ],
+                    "id": "sg-079f84f36f193c20a",
+                    "ingress": [
+                        {
+                            "cidrBlocks": [],
+                            "description": "",
+                            "fromPort": 5000,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [
+                                "sg-079c057f800503eff"
+                            ],
+                            "self": false,
+                            "toPort": 5000
+                        },
+                        {
+                            "cidrBlocks": [
+                                "10.10.1.0/24"
+                            ],
+                            "description": "",
+                            "fromPort": 22,
+                            "ipv6CidrBlocks": [],
+                            "prefixListIds": [],
+                            "protocol": "tcp",
+                            "securityGroups": [],
+                            "self": false,
+                            "toPort": 22
+                        }
+                    ],
+                    "name": "todo-infra-app-sg-e4879c8",
+                    "namePrefix": "",
+                    "ownerId": "372332707615",
+                    "revokeRulesOnDelete": false,
+                    "tags": {
+                        "Name": "todo-infra-app-sg"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-app-sg"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc",
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/securityGroup:SecurityGroup::todo-infra-alb-sg"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "ingress": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/securityGroup:SecurityGroup::todo-infra-alb-sg"
+                    ],
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:12.767281172Z",
+                "modified": "2025-01-20T11:42:12.767281172Z",
+                "sourcePosition": "project:///index.ts#209,26"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/subnet:Subnet::todo-infra-public-sn-2",
+                "custom": true,
+                "id": "subnet-031a57ee9f14138f0",
+                "type": "aws:ec2/subnet:Subnet",
+                "inputs": {
+                    "__defaults": [
+                        "assignIpv6AddressOnCreation",
+                        "enableDns64",
+                        "enableResourceNameDnsARecordOnLaunch",
+                        "enableResourceNameDnsAaaaRecordOnLaunch",
+                        "ipv6Native"
+                    ],
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1b",
+                    "cidrBlock": "10.10.2.0/24",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "ipv6Native": false,
+                    "mapPublicIpOnLaunch": true,
+                    "tags": {
+                        "Name": "todo-infra-public-sn-2",
+                        "__defaults": []
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"create\":600000000000,\"delete\":1200000000000},\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:subnet/subnet-031a57ee9f14138f0",
+                    "assignIpv6AddressOnCreation": false,
+                    "availabilityZone": "ap-southeast-1b",
+                    "availabilityZoneId": "apse1-az1",
+                    "cidrBlock": "10.10.2.0/24",
+                    "customerOwnedIpv4Pool": "",
+                    "enableDns64": false,
+                    "enableResourceNameDnsARecordOnLaunch": false,
+                    "enableResourceNameDnsAaaaRecordOnLaunch": false,
+                    "id": "subnet-031a57ee9f14138f0",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockAssociationId": "",
+                    "ipv6Native": false,
+                    "mapCustomerOwnedIpOnLaunch": false,
+                    "mapPublicIpOnLaunch": true,
+                    "outpostArn": "",
+                    "ownerId": "372332707615",
+                    "privateDnsHostnameTypeOnLaunch": "ip-name",
+                    "tags": {
+                        "Name": "todo-infra-public-sn-2"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-public-sn-2"
+                    },
+                    "vpcId": "vpc-068b82124942a69ff"
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "dependencies": [
+                    "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                ],
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "propertyDependencies": {
+                    "vpcId": [
+                        "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-vpc"
+                    ]
+                },
+                "created": "2025-01-20T11:42:15.392583449Z",
+                "modified": "2025-01-20T11:42:15.392583449Z",
+                "sourcePosition": "project:///index.ts#65,23"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/eip:Eip::todo-infra-dev-nat-eip",
+                "custom": true,
+                "id": "eipalloc-03ce41b930c58fff9",
+                "type": "aws:ec2/eip:Eip",
+                "inputs": {
+                    "__defaults": [],
+                    "vpc": true
+                },
+                "outputs": {
+                    "__meta": "{\"e2bfb730-ecaa-11e6-8f88-34363bc7c4c0\":{\"delete\":180000000000,\"read\":900000000000,\"update\":300000000000}}",
+                    "allocationId": "eipalloc-03ce41b930c58fff9",
+                    "associationId": "",
+                    "carrierIp": "",
+                    "customerOwnedIp": "",
+                    "customerOwnedIpv4Pool": "",
+                    "domain": "vpc",
+                    "id": "eipalloc-03ce41b930c58fff9",
+                    "instance": "",
+                    "networkBorderGroup": "ap-southeast-1",
+                    "networkInterface": "",
+                    "privateIp": "",
+                    "publicDns": "ec2-54-179-99-79.ap-southeast-1.compute.amazonaws.com",
+                    "publicIp": "54.179.99.79",
+                    "publicIpv4Pool": "amazon",
+                    "tags": {},
+                    "tagsAll": {},
+                    "vpc": true
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "created": "2025-01-20T11:08:35.089129503Z",
+                "modified": "2025-01-20T11:08:35.089129503Z",
+                "sourcePosition": "project:///index.ts#119,13"
+            },
+            {
+                "urn": "urn:pulumi:simply-dev::simply-done::aws:ec2/vpc:Vpc::todo-infra-dev-vpc",
+                "custom": true,
+                "id": "vpc-065e3f6f47b72356a",
+                "type": "aws:ec2/vpc:Vpc",
+                "inputs": {
+                    "__defaults": [
+                        "instanceTenancy"
+                    ],
+                    "cidrBlock": "10.10.0.0/16",
+                    "enableDnsHostnames": true,
+                    "enableDnsSupport": true,
+                    "instanceTenancy": "default",
+                    "tags": {
+                        "Name": "todo-infra-dev-vpc",
+                        "__defaults": []
+                    }
+                },
+                "outputs": {
+                    "__meta": "{\"schema_version\":\"1\"}",
+                    "arn": "arn:aws:ec2:ap-southeast-1:372332707615:vpc/vpc-065e3f6f47b72356a",
+                    "assignGeneratedIpv6CidrBlock": false,
+                    "cidrBlock": "10.10.0.0/16",
+                    "defaultNetworkAclId": "acl-01b542c378af86de1",
+                    "defaultRouteTableId": "rtb-053f89c5daf2a5024",
+                    "defaultSecurityGroupId": "sg-0c5c675de740c6d32",
+                    "dhcpOptionsId": "dopt-058173514b87eec97",
+                    "enableClassiclink": false,
+                    "enableClassiclinkDnsSupport": false,
+                    "enableDnsHostnames": true,
+                    "enableDnsSupport": true,
+                    "id": "vpc-065e3f6f47b72356a",
+                    "instanceTenancy": "default",
+                    "ipv6AssociationId": "",
+                    "ipv6CidrBlock": "",
+                    "ipv6CidrBlockNetworkBorderGroup": "",
+                    "ipv6IpamPoolId": "",
+                    "ipv6NetmaskLength": 0,
+                    "mainRouteTableId": "rtb-053f89c5daf2a5024",
+                    "ownerId": "372332707615",
+                    "tags": {
+                        "Name": "todo-infra-dev-vpc"
+                    },
+                    "tagsAll": {
+                        "Name": "todo-infra-dev-vpc"
+                    }
+                },
+                "parent": "urn:pulumi:simply-dev::simply-done::pulumi:pulumi:Stack::simply-done-simply-dev",
+                "provider": "urn:pulumi:simply-dev::simply-done::pulumi:providers:aws::default_5_9_2::e6357f7b-28e2-4e41-ad13-de3828227512",
+                "created": "2025-01-20T11:08:47.752699752Z",
+                "modified": "2025-01-20T11:08:47.752699752Z",
+                "sourcePosition": "project:///index.ts#50,13"
+            }
+        ]
+    }
+}
