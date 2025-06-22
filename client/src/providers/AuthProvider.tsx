@@ -1,78 +1,85 @@
 import { createContext, useEffect, useState, ReactNode } from "react";
-import {
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  getAuth,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  signInWithEmailAndPassword,
-  signOut,
-  updatePassword,
-  User,
-  UserCredential,
-} from "firebase/auth";
-import axios from "axios";
-import { app } from "../firebase/firebase.config";
+import { apiService } from "../utils/api";
+import { IUser } from "../Types";
+
+
 
 interface AuthContextProps {
-  user: User | null;
+  user: IUser | null;
   loading: boolean;
-  createUser: (email: string, password: string) => Promise<UserCredential>;
-  logInUser: (email: string, password: string) => Promise<UserCredential>;
-  logOutUser: () => Promise<void>;
-  changePassword: (
-    currentPassword: string,
-    newPassword: string
-  ) => Promise<void>;
+  createUser: (userName: string, email: string, password: string) => Promise<void>;
+  logInUser: (email: string, password: string) => Promise<void>;
+  logOutUser: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
-// creating auth
+// Creating auth context
 export const AuthContext = createContext<AuthContextProps | null>(null);
-const auth = getAuth(app);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 const AuthProvider = ({ children }: AuthProviderProps) => {
-  // states
-  const [user, setUser] = useState<User | null>(null);
+  // States
+  const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // functions
-  const createUser = (email: string, password: string) => {
+  // Functions
+  const createUser = async (userName: string, email: string, password: string) => {
     setLoading(true);
-    return createUserWithEmailAndPassword(auth, email, password);
-  };
-
-  const logInUser = (email: string, password: string) => {
-    setLoading(true);
-    return signInWithEmailAndPassword(auth, email, password);
-  };
-
-  const changePassword = async (
-    currentPassword: string,
-    newPassword: string
-  ) => {
-    setLoading(true);
-
-    if (!user) {
-      throw new Error("No user is currently logged in");
-    }
-
-    // reauthenticate the user
-    const credential = EmailAuthProvider.credential(
-      user.email as string,
-      currentPassword
-    );
-    await reauthenticateWithCredential(user, credential);
-
-    // then update the password
     try {
-      await updatePassword(user, newPassword);
-      console.log("Password updated successfully");
-    } catch (error) {
-      console.error("Failed to update password:", error);
+      const response = await apiService.register({ userName, email, password });
+      
+      if (response.data.error === false) {
+        // Auto-login after registration
+        await logInUser(email, password);
+      } else {
+        throw new Error(response.data.message || "Registration failed");
+      }
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logInUser = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const response = await apiService.login({ email, password });
+      
+      if (response.data.error === false && response.data.token) {
+        // Store token
+        localStorage.setItem('access-token', response.data.token);
+        
+        // Store user data
+        const userData = response.data.user;
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        throw new Error(response.data.message || "Login failed");
+      }
+    } catch (error: any) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    setLoading(true);
+    try {
+      const response = await apiService.changePassword({
+        currentPassword,
+        newPassword
+      });
+
+      if (response.data.error !== false) {
+        throw new Error(response.data.message || "Password change failed");
+      }
+    } catch (error: any) {
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -80,36 +87,34 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logOutUser = () => {
     setLoading(true);
-    return signOut(auth);
+    
+    // Clear local storage
+    localStorage.removeItem('access-token');
+    localStorage.removeItem('user');
+    
+    // Clear user state
+    setUser(null);
+    setLoading(false);
   };
 
-  // observer
+  // Check if user is logged in on app start
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const token = localStorage.getItem('access-token');
+    const userData = localStorage.getItem('user');
 
-      if (currentUser) {
-        axios
-          .post(`${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/jwt`, {
-            email: currentUser?.email,
-          })
-          .then((data) => {
-            console.log(currentUser, "currentUser");
-            localStorage.setItem("access-token", data.data.token);
-            setLoading(false);
-          })
-          .catch((error) => {
-            console.error("Axios request failed:", error);
-          });
-      } else {
-        localStorage.removeItem("access-token");
-        setLoading(false);
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        // Clear invalid data
+        localStorage.removeItem('access-token');
+        localStorage.removeItem('user');
       }
-    });
-
-    return () => {
-      return unsubscribe();
-    };
+    }
+    
+    setLoading(false);
   }, []);
 
   const authInfo = {

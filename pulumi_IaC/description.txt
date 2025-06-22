@@ -1,0 +1,35 @@
+//General overview
+/*
+- 1 vpc
+- 2 public subnet
+    - 1st subnet(public sn-1): for server to ssh into private subnet's ec2 instances, and client app
+    - 2nd subnet: for alb
+- 3 private subnet
+    - 1st(private-sn-1): Node app 
+    - 2nd private-sn-2: Node app 
+    - 3rd(private-sn-3): MongoDB 
+- 1 igw
+- 1 public route table
+- 1 private route table
+- 4 ec2 instance
+    - 1 for bastion server and client app (public sn-1) 
+    - 2 for Node app (private-sn-1 and private-sn-2), 
+    - 1 for MongoDB (private-sn-3)
+
+- 4 security group
+- 1 nat gateway
+- 1 alb
+- 1 target group
+- 1 listener
+- 1 key pair
+- 1 asg
+ 
+
+flow: 
+- ssh form local host into bastion server
+- from bastion ssh into private-sn-1,2 (app servers) and private-sn-3 (DB server)
+- app servers only receive traffic from alb
+- db only entertain app server cidr
+- for scalability - asg for auto scaling that is attached to the alb
+- and all other networking association
+*/

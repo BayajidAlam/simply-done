@@ -1,0 +1,6 @@
+---
+- name: restart frontend container
+  docker_container:
+    name: simply-done-client
+    state: started
+    restart: yes

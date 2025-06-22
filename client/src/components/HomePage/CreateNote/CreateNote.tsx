@@ -7,6 +7,7 @@ import {
 } from "react-icons/md";
 import { toast } from "react-toastify";
 import useAuth from "../../../hooks/useAuth";
+import { apiService } from "../../../utils/api";
 
 interface TodoItem {
   id: string;
@@ -16,12 +17,6 @@ interface TodoItem {
 
 interface CreateNoteCardProps {
   refetch: () => void;
-}
-
-interface CreateNoteResponse {
-  insertedId?: string;
-  error?: boolean;
-  message?: string;
 }
 
 const CreateNoteCard: React.FC<CreateNoteCardProps> = ({ refetch }) => {
@@ -70,39 +65,34 @@ const CreateNoteCard: React.FC<CreateNoteCardProps> = ({ refetch }) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes?email=${
-          user?.email
-        }&isTodo=${isTodo}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title,
-            content: isTodo ? "" : content,
-            isArchived: false,
-            isTrashed: false,
-            isTodo,
-            todos: isTodo ? todos : [],
-          }),
-        }
-      );
+      // Use the new API service with automatic token handling
+      const todoData = {
+        title,
+        description: isTodo ? "" : content,
+        completed: false,
+        // Add additional fields if your backend expects them
+        ...(isTodo && { todos }),
+      };
 
-      const data: CreateNoteResponse = await response.json();
-      if (response.ok && data.insertedId) {
+      const response = await apiService.createTodo(todoData);
+      
+      if (response.data.error === false) {
         refetch();
-        toast.success("Note created successfully!");
+        toast.success("Todo created successfully!");
         setTitle("");
         setContent("");
         setIsClick(false);
         setIsTodo(false);
         setTodos([]);
+      } else {
+        throw new Error(response.data.message || "Failed to create todo");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Failed to create note");
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         "Failed to create todo";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -171,45 +161,48 @@ const CreateNoteCard: React.FC<CreateNoteCardProps> = ({ refetch }) => {
       <div
         className={`transition-all duration-500 ease-in-out ${
           isClick
-            ? "opacity-100 max-h-full"
+            ? "opacity-100 max-h-20 mt-4"
             : "opacity-0 max-h-0 overflow-hidden"
         }`}
       >
-        {isClick && (
-          <div>
-            <div className="flex justify-between items-center mt-4">
-              <button
-                type="button"
-                onClick={() => setIsTodo(!isTodo)}
-                className={`p-2 rounded-md ${
-                  isTodo ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
-                }`}
-              >
-                Todo list
-              </button>
-              <div className="flex justify-end items-center gap-2">
-                <Button
-                  onClick={() => {
-                    setIsClick(false);
-                    setIsTodo(false);
-                    setTodos([]);
-                  }}
-                  className="mt-4"
-                  variant="outline"
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={handleCreateNote}
-                  className="mt-4"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            </div>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsTodo(!isTodo)}
+              className={isTodo ? "bg-blue-100" : ""}
+            >
+              {isTodo ? "Note" : "List"}
+            </Button>
           </div>
-        )}
+          
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setTitle("");
+                setContent("");
+                setIsClick(false);
+                setIsTodo(false);
+                setTodos([]);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleCreateNote}
+              disabled={isLoading}
+            >
+              {isLoading ? "Creating..." : "Create"}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// client/src/pages/Login/Login.tsx
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,7 +18,6 @@ import { showErrorToast, showSuccessToast } from "../../utils/toast";
 import useAuth from "../../hooks/useAuth";
 
 const Login = () => {
-
   const { logInUser, loading } = useAuth();
 
   const navigate = useNavigate();
@@ -38,18 +37,17 @@ const Login = () => {
   async function onSubmit(data: z.infer<typeof loginSchema>) {
     console.log(data, "user data");
     try {
-      logInUser(data.email, data.password)
-        .then((result: any) => {
-          if (result?.user?.email) {
-            showSuccessToast("Successfully logged in!");
-            navigate(from, { replace: true });
-          }
-        })
-        .catch((error: any) => {
-          showErrorToast(error?.message);
-        });
-    } catch (error) {
+      // Use backend-only login
+      await logInUser(data.email, data.password);
+      
+      showSuccessToast("Successfully logged in!");
+      navigate(from, { replace: true });
+    } catch (error: any) {
       console.log(error, "error");
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         "Login failed";
+      showErrorToast(errorMessage);
     }
   }
 
@@ -64,10 +62,11 @@ const Login = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="grid w-full items-center gap-4">
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="email">User Name</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
-                    placeholder="john doe"
+                    type="email"
+                    placeholder="john@example.com"
                     {...register("email")}
                   />
                   {errors.email && (
@@ -88,17 +87,18 @@ const Login = () => {
                   )}
                 </div>
 
-                <Button type="submit">
+                <Button type="submit" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
+
+                <p className="text-center text-sm">
+                  Don't have an account?{" "}
+                  <Link to="/registration" className="text-blue-600 hover:underline">
+                    Register here
+                  </Link>
+                </p>
               </div>
             </form>
-            <p className="my-2 text-center">
-              New to Neep?{" "} 
-              <Link className="font-semibold" to="/registration">
-                Create account
-              </Link>
-            </p>
           </Form>
         </CardContent>
       </Card>
