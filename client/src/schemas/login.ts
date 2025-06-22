@@ -11,5 +11,5 @@ export const loginSchema = z.object({
       required_error: "Please enter your password.",
     })
     .min(6)
-    .max(12),
+    .max(34),
 });

@@ -1,4 +1,3 @@
-// client/src/utils/api.ts
 import axios, { AxiosResponse } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_APP_BACKEND_ROOT_URL;

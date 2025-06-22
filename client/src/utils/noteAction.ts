@@ -14,33 +14,41 @@ export const updateNoteStatus = async ({
   currentStatus,
 }: UpdateNoteStatusParams) => {
   try {
+    const updateField = action === "archive" ? "isArchived" : "isTrashed";
+    const newStatus = !currentStatus;
+
     const response = await fetch(
-      `${
-        import.meta.env.VITE_APP_BACKEND_ROOT_URL
-      }/notes/${noteId}?email=${email}`,
+      `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes/${noteId}?email=${email}`,
       {
         method: "PATCH",
         headers: {
-          "content-type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          [action === "archive" ? "isArchived" : "isTrashed"]: !currentStatus,
+          [updateField]: newStatus,
         }),
       }
     );
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const result = await response.json();
+    
     if (result.success) {
       const messages = {
-        archive: currentStatus ? "Note unarchived!" : "Note archived!",
-        trash: currentStatus ? "Note restored!" : "Note moved to trash!",
+        archive: newStatus ? "Note archived!" : "Note unarchived!",
+        trash: newStatus ? "Note moved to trash!" : "Note restored!",
       };
       showSuccessToast(messages[action]);
       return true;
+    } else {
+      showErrorToast(result.message || `Failed to ${action} note`);
+      return false;
     }
-    return false;
   } catch (error) {
-    console.error(error);
+    console.error(`Error ${action}ing note:`, error);
     showErrorToast(`Failed to ${action} note`);
     return false;
   }

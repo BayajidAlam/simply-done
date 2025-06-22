@@ -7,7 +7,6 @@ import {
 } from "react-icons/md";
 import { toast } from "react-toastify";
 import useAuth from "../../../hooks/useAuth";
-import { apiService } from "../../../utils/api";
 
 interface TodoItem {
   id: string;
@@ -52,51 +51,72 @@ const CreateNoteCard: React.FC<CreateNoteCardProps> = ({ refetch }) => {
     );
   };
 
-  const handleCreateNote = async () => {
-    if (!title.trim() || (!content.trim() && todos.length === 0)) {
-      toast.error("Title and content/todos are required!");
-      return;
-    }
+ const handleCreateNote = async () => {
+  if (!title.trim() || (!content.trim() && todos.length === 0)) {
+    toast.error("Title and content/todos are required!");
+    return;
+  }
 
-    if (isTodo && todos.some((todo) => !todo.text.trim())) {
-      toast.error("All todo items must have content!");
-      return;
-    }
+  if (isTodo && todos.some((todo) => !todo.text.trim())) {
+    toast.error("All todo items must have content!");
+    return;
+  }
 
-    setIsLoading(true);
-    try {
-      // Use the new API service with automatic token handling
-      const todoData = {
-        title,
-        description: isTodo ? "" : content,
-        completed: false,
-        // Add additional fields if your backend expects them
-        ...(isTodo && { todos }),
-      };
+  if (!user?.email) {
+    toast.error("User email is required!");
+    return;
+  }
 
-      const response = await apiService.createTodo(todoData);
-      
-      if (response.data.error === false) {
-        refetch();
-        toast.success("Todo created successfully!");
-        setTitle("");
-        setContent("");
-        setIsClick(false);
-        setIsTodo(false);
-        setTodos([]);
-      } else {
-        throw new Error(response.data.message || "Failed to create todo");
+  setIsLoading(true);
+  try {
+    const noteData = {
+      title,
+      content: isTodo ? "" : content,
+      isArchived: false,
+      isTrashed: false,
+      isTodo,
+      todos: isTodo ? todos : [],
+    };
+
+    const response = await fetch(
+      `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes?email=${user.email}&isTodo=${isTodo}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(noteData),
       }
-    } catch (error: any) {
-      console.error(error);
-      const errorMessage = error.response?.data?.message || 
-                         error.message || 
-                         "Failed to create todo";
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    
+    // Your backend returns { acknowledged: true, insertedId: "..." }
+    if (data.acknowledged && data.insertedId) {
+      refetch();
+      toast.success("Note created successfully!");
+      
+      // Reset form
+      setTitle("");
+      setContent("");
+      setTodos([]);
+      setIsTodo(false);
+      setIsClick(false);
+    } else {
+      toast.error("Failed to create note");
+    }
+  } catch (error) {
+    console.error("Error creating note:", error);
+    toast.error("Failed to create note. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="lg:w-[600px] shadow-2xl p-4 rounded-xl mx-auto">

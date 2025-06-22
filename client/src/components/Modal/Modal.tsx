@@ -1,4 +1,3 @@
-// src/components/Modal/Modal.tsx
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { Form, FormField, FormItem, FormMessage } from "../ui/form";
@@ -85,38 +84,43 @@ const ViewNotesModal: React.FC<IViewNotesProps> = ({
     );
   };
 
-  const onSubmit = async (data: IFormData) => {
-    try {
-      const payload = {
-        ...data,
-        todos: selectedNote.isTodo ? todos : [],
-      };
+ const onSubmit = async (data: IFormData) => {
+  try {
+    const payload = {
+      ...data,
+      todos: selectedNote.isTodo ? todos : [],
+    };
 
-      const response = await fetch(
-        `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes/${
-          selectedNote._id
-        }?email=${userEmail}`,
-        {
-          method: "PATCH",
-          headers: {
-            "content-type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        refetch();
-        reset();
-        showSuccessToast("Note updated successfully!");
-        setIsOpen(false);
+    const response = await fetch(
+      `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes/${selectedNote._id}?email=${userEmail}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       }
-    } catch (error) {
-      console.error(error);
-      showErrorToast((error as Error).message);
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const result = await response.json();
+    
+    if (result.success) {
+      refetch();
+      reset();
+      showSuccessToast(result.message || "Note updated successfully!");
+      setIsOpen(false);
+    } else {
+      showErrorToast(result.message || "Failed to update note");
+    }
+  } catch (error) {
+    console.error("Error updating note:", error);
+    showErrorToast("Failed to update note. Please try again.");
+  }
+};
 
   const handleAddToArchive = async () => {
     const success = await updateNoteStatus({

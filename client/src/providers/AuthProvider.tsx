@@ -2,15 +2,20 @@ import { createContext, useEffect, useState, ReactNode } from "react";
 import { apiService } from "../utils/api";
 import { IUser } from "../Types";
 
-
-
 interface AuthContextProps {
   user: IUser | null;
   loading: boolean;
-  createUser: (userName: string, email: string, password: string) => Promise<void>;
+  createUser: (
+    userName: string,
+    email: string,
+    password: string
+  ) => Promise<void>;
   logInUser: (email: string, password: string) => Promise<void>;
   logOutUser: () => void;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<void>;
 }
 
 // Creating auth context
@@ -26,19 +31,27 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   // Functions
-  const createUser = async (userName: string, email: string, password: string) => {
+  const createUser = async (
+    userName: string,
+    email: string,
+    password: string
+  ) => {
     setLoading(true);
     try {
       const response = await apiService.register({ userName, email, password });
-      
-      if (response.data.error === false) {
-        // Auto-login after registration
+
+      // Your backend returns { acknowledged: true, insertedId: "..." }
+      if (response.data.acknowledged && response.data.insertedId) {
+        // Registration successful, but we need to login to get the token
         await logInUser(email, password);
       } else {
-        throw new Error(response.data.message || "Registration failed");
+        throw new Error("Registration failed");
       }
     } catch (error: any) {
-      throw error;
+      console.error("Registration error:", error);
+      throw new Error(
+        error.response?.data?.message || error.message || "Registration failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -48,38 +61,62 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(true);
     try {
       const response = await apiService.login({ email, password });
-      
-      if (response.data.error === false && response.data.token) {
+
+      // Your backend returns { token: "..." }
+      if (response.data.token) {
         // Store token
-        localStorage.setItem('access-token', response.data.token);
-        
-        // Store user data
-        const userData = response.data.user;
+        localStorage.setItem("access-token", response.data.token);
+
+        // Create user object from login data
+        const userData: IUser = {
+          email: response.data.user.email,
+          userName: response.data.user.userName,
+        };
+
         setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem("user", JSON.stringify(userData));
       } else {
-        throw new Error(response.data.message || "Login failed");
+        throw new Error("Login failed - no token received");
       }
     } catch (error: any) {
-      throw error;
+      console.error("Login error:", error);
+      throw new Error(
+        error.response?.data?.message || error.message || "Login failed"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string) => {
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ) => {
     setLoading(true);
     try {
+      if (!user?.email) {
+        throw new Error("No user logged in");
+      }
+
       const response = await apiService.changePassword({
         currentPassword,
-        newPassword
+        newPassword,
       });
 
-      if (response.data.error !== false) {
+      // Your backend returns { error: false, data: {...}, message: "Password changed successfully!" }
+      if (response.data.error === false) {
+        // Password changed successfully
+        console.log("Password changed successfully");
+      } else {
         throw new Error(response.data.message || "Password change failed");
       }
     } catch (error: any) {
-      throw error;
+      console.error("Change password error:", error);
+      throw new Error(
+        error.response?.data?.message ||
+          error.message ||
+          "Password change failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -87,11 +124,11 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logOutUser = () => {
     setLoading(true);
-    
+
     // Clear local storage
-    localStorage.removeItem('access-token');
-    localStorage.removeItem('user');
-    
+    localStorage.removeItem("access-token");
+    localStorage.removeItem("user");
+
     // Clear user state
     setUser(null);
     setLoading(false);
@@ -99,8 +136,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Check if user is logged in on app start
   useEffect(() => {
-    const token = localStorage.getItem('access-token');
-    const userData = localStorage.getItem('user');
+    const token = localStorage.getItem("access-token");
+    const userData = localStorage.getItem("user");
 
     if (token && userData) {
       try {
@@ -109,11 +146,11 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       } catch (error) {
         console.error("Error parsing user data:", error);
         // Clear invalid data
-        localStorage.removeItem('access-token');
-        localStorage.removeItem('user');
+        localStorage.removeItem("access-token");
+        localStorage.removeItem("user");
       }
     }
-    
+
     setLoading(false);
   }, []);
 

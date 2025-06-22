@@ -9,12 +9,19 @@ export interface User {
   createdAt?: Date;
 }
 
-export interface Todo {
+export interface Note {
   _id?: ObjectId;
   title: string;
-  description: string;
-  completed: boolean;
-  userId: string;
+  content: string;
+  isArchived: boolean;
+  isTrashed: boolean;
+  email: string;
+  isTodo: boolean | null;
+  todos: Array<{
+    id: string;
+    text: string;
+    isCompleted: boolean;
+  }>;
   createdAt: Date;
   updatedAt?: Date;
 }

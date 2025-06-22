@@ -1,9 +1,7 @@
-// client/src/pages/RegisterUser/RegisterUser.tsx
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Bounce, toast } from "react-toastify";
 import { Input } from "../../components/ui/input";
 import { registerSchema } from "../../schemas/register";
 import {
@@ -16,6 +14,7 @@ import { Form } from "../../components/ui/form";
 import { Label } from "@radix-ui/react-label";
 import { Button } from "../../components/ui/button";
 import useAuth from "../../hooks/useAuth";
+import { showErrorToast, showSuccessToast } from "../../utils/toast";
 
 const RegisterUser = () => {
   const { createUser, loading } = useAuth();
@@ -37,40 +36,12 @@ const RegisterUser = () => {
 
   async function onSubmit(data: z.infer<typeof registerSchema>) {
     try {
-      // Use backend-only registration
       await createUser(data.name, data.email, data.password);
-      
+      showSuccessToast("User registered successfully!");
       reset();
       navigate(from, { replace: true });
-      toast.success("User registered successfully!", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-        transition: Bounce,
-      });
     } catch (error: any) {
-      console.error("Registration error:", error);
-      
-      const errorMessage = error.response?.data?.message || 
-                         error.message || 
-                         "Registration failed";
-      
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-        transition: Bounce,
-      });
+      showErrorToast(error.message || "Registration failed");
     }
   }
 
@@ -85,10 +56,10 @@ const RegisterUser = () => {
             <form onSubmit={handleSubmit(onSubmit)}>
               <div className="grid w-full items-center gap-4">
                 <div className="flex flex-col space-y-1.5">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">Username</Label>
                   <Input
                     id="name"
-                    placeholder="John Doe"
+                    placeholder="johndoe"
                     {...register("name")}
                   />
                   {errors.name && (
@@ -123,18 +94,19 @@ const RegisterUser = () => {
                 </div>
 
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Registering..." : "Register"}
+                  {loading ? "Creating account..." : "Register"}
                 </Button>
-
-                <p className="text-center text-sm">
-                  Already have an account?{" "}
-                  <Link to="/login" className="text-blue-600 hover:underline">
-                    Login here
-                  </Link>
-                </p>
               </div>
             </form>
           </Form>
+          <div className="text-center mt-4">
+            <p className="text-sm">
+              Already have an account?{" "}
+              <Link to="/login" className="text-blue-600 hover:underline">
+                Login here
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

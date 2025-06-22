@@ -1,4 +1,3 @@
-// client/src/pages/Login/Login.tsx
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -35,19 +34,12 @@ const Login = () => {
   } = form;
 
   async function onSubmit(data: z.infer<typeof loginSchema>) {
-    console.log(data, "user data");
     try {
-      // Use backend-only login
       await logInUser(data.email, data.password);
-      
       showSuccessToast("Successfully logged in!");
       navigate(from, { replace: true });
     } catch (error: any) {
-      console.log(error, "error");
-      const errorMessage = error.response?.data?.message || 
-                         error.message || 
-                         "Login failed";
-      showErrorToast(errorMessage);
+      showErrorToast(error.message || "Login failed");
     }
   }
 
@@ -90,16 +82,17 @@ const Login = () => {
                 <Button type="submit" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
-
-                <p className="text-center text-sm">
-                  Don't have an account?{" "}
-                  <Link to="/registration" className="text-blue-600 hover:underline">
-                    Register here
-                  </Link>
-                </p>
               </div>
             </form>
           </Form>
+          <div className="text-center mt-4">
+            <p className="text-sm">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-blue-600 hover:underline">
+                Register here
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -13,18 +13,21 @@ const useDeleteNote = ({ email, onSuccess }: UseDeleteNoteParams) => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${
-          import.meta.env.VITE_APP_BACKEND_ROOT_URL
-        }/notes/${noteId}?email=${email}`,
+        `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes/${noteId}?email=${email}`,
         {
           method: "DELETE",
         }
       );
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
+      // Your backend returns { success: true, message: "Note deleted successfully" }
       if (data.success) {
-        showSuccessToast("Note deleted successfully");
+        showSuccessToast(data.message || "Note deleted successfully");
         onSuccess?.();
         return true;
       } else {
@@ -32,7 +35,7 @@ const useDeleteNote = ({ email, onSuccess }: UseDeleteNoteParams) => {
         return false;
       }
     } catch (error) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      console.error("Error deleting note:", error);
       showErrorToast("Error deleting note");
       return false;
     } finally {
