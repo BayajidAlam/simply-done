@@ -45,10 +45,7 @@ const saltRounds = 10;
 
 app.use(
   cors({
-    origin:
-      config.NODE_ENV === "production"
-        ? [""]
-        : ["http://localhost:5173"],
+    origin: config.NODE_ENV === "production" ? [""] : ["http://localhost:5173"],
     credentials: true,
   })
 );
@@ -75,10 +72,10 @@ async function run(): Promise<void> {
       NODE_ENV: config.NODE_ENV,
       DB_USER: config.DB_USER ? "✅ SET" : "❌ NOT SET",
       DB_PASS: config.DB_PASS ? "✅ SET" : "❌ NOT SET",
-      ACCESS_TOKEN_SECRET: config.ACCESS_TOKEN_SECRET ? "✅ SET" : "❌ NOT SET"
+      ACCESS_TOKEN_SECRET: config.ACCESS_TOKEN_SECRET ? "✅ SET" : "❌ NOT SET",
     });
     console.log("🔗 MongoDB URI:", uri);
-    
+
     await client.connect();
     console.log("Connected to MongoDB");
 
@@ -241,7 +238,7 @@ async function run(): Promise<void> {
     );
 
     // ==================== NOTES ENDPOINTS (matching your frontend exactly) ====================
-    
+
     // Get all notes with search and filtering
     app.get("/notes", async (req: Request, res: Response) => {
       try {
@@ -294,7 +291,8 @@ async function run(): Promise<void> {
     // Create a note
     app.post("/notes", async (req: Request, res: Response) => {
       try {
-        const { title, content, isArchived, isTrashed, isTodo, todos } = req.body;
+        const { title, content, isArchived, isTrashed, isTodo, todos } =
+          req.body;
         const email = req.query.email;
 
         if (!email) {
@@ -338,7 +336,7 @@ async function run(): Promise<void> {
     app.get("/notes/:id", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        
+
         if (!ObjectId.isValid(id)) {
           return res.status(400).json({
             error: true,
@@ -371,7 +369,8 @@ async function run(): Promise<void> {
     app.patch("/notes/:id", async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
-        const { isArchived, isTrashed, title, content, todos, isTodo } = req.body;
+        const { isArchived, isTrashed, title, content, todos, isTodo } =
+          req.body;
         const email = req.query.email;
 
         // Validate email
@@ -405,17 +404,27 @@ async function run(): Promise<void> {
 
         const updateFields: Partial<INoteTypes> = {};
 
-        // Update status fields if provided
-        if (isArchived !== undefined) {
-          updateFields.isArchived = isArchived;
-        }
-        if (isTrashed !== undefined) {
-          updateFields.isTrashed = isTrashed;
-        }
-
-        // Update todo status if provided
-        if (isTodo !== undefined) {
-          updateFields.isTodo = isTodo;
+        // Handle mutually exclusive states for archive/trash
+        if (isArchived !== undefined || isTrashed !== undefined) {
+          if (isArchived === true) {
+            // When archiving: set archived=true, trashed=false
+            updateFields.isArchived = true;
+            updateFields.isTrashed = false;
+          } else if (isTrashed === true) {
+            // When trashing: set trashed=true, archived=false
+            updateFields.isTrashed = true;
+            updateFields.isArchived = false;
+          } else if (isArchived === false && isTrashed === false) {
+            // When restoring to home: both false
+            updateFields.isArchived = false;
+            updateFields.isTrashed = false;
+          } else if (isArchived === false) {
+            // When un-archiving: archived=false
+            updateFields.isArchived = false;
+          } else if (isTrashed === false) {
+            // When un-trashing: trashed=false
+            updateFields.isTrashed = false;
+          }
         }
 
         // Update todos if provided (matches your frontend todo structure)

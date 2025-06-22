@@ -18,4 +18,5 @@ export interface INoteTypes {
   todos?: ITodoTypes[];
   isArchived: boolean;
   isTrashed: boolean;
+  createdAt: string;
 }

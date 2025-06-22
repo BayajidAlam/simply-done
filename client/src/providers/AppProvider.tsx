@@ -5,6 +5,7 @@ interface AppContextProps {
   toggleSideBar: () => void;
   isListView: boolean;
   toggleListView: () => void;
+  setIsListView: (value: boolean) => void; 
   searchTerm: string;
   setSearchTerm: (term: string) => void;
 }
@@ -38,6 +39,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         toggleSideBar, 
         isListView, 
         toggleListView,
+        setIsListView, 
         searchTerm,
         setSearchTerm
       }}

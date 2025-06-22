@@ -1,22 +1,26 @@
 import { useState } from "react";
-import { RiInboxArchiveLine } from "react-icons/ri";
-import CreateNoteCard from "../../components/HomePage/CreateNote/CreateNote";
-import { GoTrash } from "react-icons/go";
 import { useAppContext } from "../../providers/AppProvider";
-import ViewNotesModal from "../../components/Modal/Modal";
 import useFetchNotes from "../../hooks/useNotes";
 import useAuth from "../../hooks/useAuth";
 import { updateNoteStatus } from "../../utils/noteAction";
+import { useQueryClient } from "@tanstack/react-query";
 import { INoteTypes } from "../../Types";
+import LoadingState from "../../components/Shared/LoadingState";
+import CreateNote from "../../components/Shared/CreateNote";
+import EmptyState from "../../components/Shared/EmptyState";
+import NoteCard from "../../components/Shared/NoteCard";
+import Modal from "../../components/Modal/Modal";
 
-const Home = () => {
+const HomePage = () => {
   const { isListView, searchTerm } = useAppContext();
   const { user } = useAuth();
   const userEmail = user?.email as string;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<INoteTypes | null>(null);
 
-  const { notes, refetch } = useFetchNotes({
+  const queryClient = useQueryClient();
+
+  const { notes, notesLoading, refetch } = useFetchNotes({
     email: userEmail,
     searchTerm,
     isTrashed: false,
@@ -30,104 +34,132 @@ const Home = () => {
 
   const handleArchive = async (e: React.MouseEvent, note: INoteTypes) => {
     e.stopPropagation();
+
     const success = await updateNoteStatus({
       noteId: note._id,
       email: userEmail,
       action: "archive",
       currentStatus: note.isArchived,
+      queryClient,
+      currentPage: "home",
     });
-    if (success) {
-      refetch();
-    }
   };
 
   const handleTrash = async (e: React.MouseEvent, note: INoteTypes) => {
     e.stopPropagation();
+
     const success = await updateNoteStatus({
       noteId: note._id,
       email: userEmail,
       action: "trash",
       currentStatus: note.isTrashed,
+      queryClient,
+      currentPage: "home",
     });
-    if (success) {
-      refetch();
-    }
   };
 
-  return (
-    <div className="w-full">
-      <CreateNoteCard refetch={refetch} />
+  if (notesLoading) {
+    return <LoadingState />;
+  }
 
-      <div
-        className={`grid gap-3 transition-all duration-500 ease-in-out ${
-          isListView
-            ? "grid-cols-1 pt-16"
-            : "lg:grid-cols-4 md:grid-cols-1 pt-16"
-        }`}
-      >
-        {notes?.map((note: INoteTypes, index: number) => (
-          <div
-            className={`border rounded-md p-2 transition-all duration-500 ease-in-out ${
-              isListView ? "w-[600px] mx-auto" : "w-96"
-            }`}
-            key={index}
-            onClick={() => openModal(note)}
-          >
-            <h1 className="text-md font-bold">{note.title}</h1>
-            {note.isTodo ? (
-              <div>
-                <h2 className="font-semibold text-lg mb-2">To-Do List:</h2>
-                <ul className="space-y-2">
-                  {note.todos?.map((todo) => (
-                    <li key={todo.id} className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={todo.isCompleted}
-                        readOnly
-                        className="form-checkbox h-4 w-4 text-blue-500"
-                      />
-                      <span
-                        className={`${
-                          todo.isCompleted
-                            ? "line-through text-gray-500"
-                            : "text-black"
-                        }`}
-                      >
-                        {todo.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                My Notes
+              </h1>
+              <p className="text-slate-600">
+                {notes?.length > 0
+                  ? `${notes.length} ${
+                      notes.length === 1 ? "note" : "notes"
+                    } in your workspace`
+                  : "Start creating your first note"}
+              </p>
+            </div>
+
+            {/* Quick Stats */}
+            {notes?.length > 0 && (
+              <div className="hidden md:flex items-center gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {notes.filter((note) => note.isTodo).length}
+                  </div>
+                  <div className="text-xs text-slate-500">Todo Lists</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-emerald-600">
+                    {notes.filter((note) => !note.isTodo).length}
+                  </div>
+                  <div className="text-xs text-slate-500">Text Notes</div>
+                </div>
               </div>
-            ) : (
-              <p>{note.content}</p>
             )}
-            <div className="flex justify-end items-center gap-3 mt-4">
-              <button
-                onClick={(e) => handleArchive(e, note)}
-                className="text-gray-500 hover:text-blue-500"
-              >
-                <RiInboxArchiveLine />
-              </button>
-              <button
-                onClick={(e) => handleTrash(e, note)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                <GoTrash />
-              </button>
+          </div>
+
+          {/* Create Note Section */}
+          <CreateNote refetch={refetch} />
+        </div>
+
+        {/* Notes Grid */}
+        {notes?.length === 0 ? (
+          <EmptyState
+            title="No notes yet"
+            description="Create your first note to get started organizing your thoughts and tasks."
+            icon="📝"
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* Search Results Info */}
+            {searchTerm && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800">
+                  Found <span className="font-semibold">{notes.length}</span>{" "}
+                  notes matching "
+                  <span className="font-semibold">{searchTerm}</span>"
+                </p>
+              </div>
+            )}
+
+            {/* Notes Grid */}
+            <div
+              className={`transition-all duration-500 ease-in-out ${
+                isListView
+                  ? "space-y-4" // List view with vertical spacing
+                  : "grid gap-6 auto-rows-fr grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+              }`}
+            >
+              {notes.map((note: INoteTypes) => (
+                <NoteCard
+                  key={note._id?.toString()}
+                  note={note}
+                  onEdit={openModal}
+                  onArchive={handleArchive}
+                  onTrash={handleTrash}
+                  showArchiveButton={true}
+                  showTrashButton={true}
+                  showRestoreButton={false}
+                  showDeleteButton={false}
+                  isListView={isListView}
+                />
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      <ViewNotesModal
-        refetch={refetch}
-        isOpen={isModalOpen}
-        setIsOpen={setIsModalOpen}
-        selectedNote={selectedNote as INoteTypes}
-      />
+        {/* Modal */}
+        <Modal
+          refetch={refetch}
+          isOpen={isModalOpen}
+          setIsOpen={setIsModalOpen}
+          selectedNote={selectedNote as INoteTypes}
+        />
+      </div>
     </div>
   );
 };
 
-export default Home;
+export default HomePage;
