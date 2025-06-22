@@ -1,32 +1,37 @@
 import { useState } from "react";
-import { RiInboxArchiveLine } from "react-icons/ri";
 import { useAppContext } from "../../providers/AppProvider";
-import ViewNotesModal from "../../components/Modal/Modal";
 import useFetchNotes from "../../hooks/useNotes";
 import useAuth from "../../hooks/useAuth";
 import { archiveNote, restoreNote } from "../../utils/noteAction";
-import { Button } from "../../components/ui/button";
 import useDeleteNote from "../../hooks/useDeleteNote";
-import { AiFillDelete } from "react-icons/ai";
-import { BiHome } from "react-icons/bi";
 import { INoteTypes, NoteStatus } from "../../Types";
-import CreateNote from "../../components/Shared/CreateNote";
+import LoadingState from "../../components/Shared/LoadingState";
+import EmptyState from "../../components/Shared/EmptyState";
+import NoteCard from "../../components/Shared/NoteCard";
+import Modal from "../../components/Modal/Modal";
+import { useQueryClient } from "@tanstack/react-query";
 
 const TrashPage = () => {
-  const { isListView } = useAppContext();
+  const { isListView, searchTerm } = useAppContext();
+  const { user } = useAuth();
+  const userEmail = user?.email as string;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<INoteTypes | null>(null);
 
-  const { user } = useAuth();
-  const userEmail = user?.email as string;
+  const queryClient = useQueryClient();
 
-  const { notes, refetch } = useFetchNotes({
+  const { notes, notesLoading, refetch } = useFetchNotes({
     email: userEmail,
-    searchTerm: "",
+    searchTerm: searchTerm || "",
     status: NoteStatus.TRASHED, // Only get trashed notes
   });
 
-  const openModal = (note: INoteTypes): void => {
+  const { deleteNote } = useDeleteNote({
+    email: userEmail,
+    onSuccess: refetch,
+  });
+
+  const openModal = (note: INoteTypes) => {
     setSelectedNote(note);
     setIsModalOpen(true);
   };
@@ -36,6 +41,7 @@ const TrashPage = () => {
     const success = await archiveNote(note._id, userEmail);
     if (success) {
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
 
@@ -44,109 +50,113 @@ const TrashPage = () => {
     const success = await restoreNote(note._id, userEmail);
     if (success) {
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
-
-  const { deleteNote } = useDeleteNote({
-    email: userEmail,
-    onSuccess: refetch,
-  });
 
   const handleDelete = async (e: React.MouseEvent, noteId: string) => {
     e.stopPropagation();
     await deleteNote(noteId);
   };
 
-  return (
-    <div className="w-full">
-      <CreateNote refetch={refetch} />
+  if (notesLoading) {
+    return <LoadingState />;
+  }
 
-      <div
-        className={`grid gap-3 transition-all duration-500 ease-in-out ${
-          isListView
-            ? "grid-cols-1 pt-16"
-            : "lg:grid-cols-4 md:grid-cols-1 pt-16"
-        }`}
-      >
-        {notes?.map((note: INoteTypes, index: number) => (
-          <div
-            className={`border rounded-md p-2 transition-all duration-500 ease-in-out ${
-              isListView ? "w-[600px] mx-auto" : "w-96"
-            } border-red-200 bg-red-50/30`} // Visual indication it's in trash
-            key={index}
-            onClick={() => openModal(note)}
-          >
-            <h1 className="text-md font-bold">{note.title}</h1>
-            {note.isTodo ? (
-              <div>
-                <h2 className="font-semibold text-lg mb-2">To-Do List:</h2>
-                <ul className="space-y-2">
-                  {note.todos?.map((todo) => (
-                    <li key={todo.id} className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={todo.isCompleted}
-                        readOnly
-                        className="form-checkbox h-4 w-4 text-blue-500"
-                      />
-                      <span
-                        className={`${
-                          todo.isCompleted
-                            ? "line-through text-gray-500"
-                            : "text-black"
-                        }`}
-                      >
-                        {todo.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50/30 to-rose-50/50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">
+                Trash
+              </h1>
+              <p className="text-slate-600">
+                {notes?.length > 0
+                  ? `${notes.length} deleted ${
+                      notes.length === 1 ? "note" : "notes"
+                    }`
+                  : "Trash is empty"}
+              </p>
+            </div>
+
+            {/* Quick Stats */}
+            {notes?.length > 0 && (
+              <div className="hidden md:flex items-center gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-red-600">
+                    {notes.filter((note) => note.isTodo).length}
+                  </div>
+                  <div className="text-xs text-slate-500">Todo Lists</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-rose-600">
+                    {notes.filter((note) => !note.isTodo).length}
+                  </div>
+                  <div className="text-xs text-slate-500">Text Notes</div>
+                </div>
               </div>
-            ) : (
-              <p>{note.content}</p>
             )}
-            <div className="flex justify-between items-center mt-4">
-              <Button
-                variant={"outline"}
-                onClick={(e) => handleRestore(e, note)}
-                className="text-green-600 hover:text-green-700 flex items-center gap-1"
-                title="Restore to Home"
-              >
-                <BiHome />
-                <span className="hidden sm:inline">Restore</span>
-              </Button>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant={"outline"}
-                  onClick={(e) => handleArchive(e, note)}
-                  className="hover:text-blue-500"
-                  title="Move to Archive"
-                >
-                  <RiInboxArchiveLine />
-                </Button>
-                <Button
-                  variant={"outline"}
-                  onClick={(e) => handleDelete(e, note._id)}
-                  className="hover:text-red-500 text-red-500"
-                  title="Delete Forever"
-                >
-                  <AiFillDelete />
-                </Button>
+          </div>
+        </div>
+
+        {/* Notes Grid */}
+        {notes?.length === 0 ? (
+          <EmptyState
+            title="Trash is empty"
+            description="Deleted notes will appear here. You can restore them or delete them permanently."
+            icon="🗑️"
+          />
+        ) : (
+          <div className="space-y-6">
+            {/* Search Results Info */}
+            {searchTerm && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800">
+                  Found <span className="font-semibold">{notes.length}</span>{" "}
+                  deleted notes matching "
+                  <span className="font-semibold">{searchTerm}</span>"
+                </p>
               </div>
+            )}
+
+            {/* Notes Grid */}
+            <div
+              className={`transition-all duration-500 ease-in-out ${
+                isListView
+                  ? "space-y-4" // List view with vertical spacing
+                  : "grid gap-6 auto-rows-fr grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+              }`}
+            >
+              {notes.map((note: INoteTypes) => (
+                <NoteCard
+                  key={note._id?.toString()}
+                  note={note}
+                  onEdit={openModal}
+                  onArchive={handleArchive}
+                  onRestore={handleRestore}
+                  onDelete={handleDelete}
+                  showArchiveButton={true}
+                  showTrashButton={false}
+                  showRestoreButton={true}
+                  showDeleteButton={true}
+                  isListView={isListView}
+                />
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        )}
 
-      {selectedNote && (
-        <ViewNotesModal
+        {/* Modal */}
+        <Modal
           refetch={refetch}
           isOpen={isModalOpen}
           setIsOpen={setIsModalOpen}
-          selectedNote={selectedNote}
+          selectedNote={selectedNote as INoteTypes}
         />
-      )}
+      </div>
     </div>
   );
 };

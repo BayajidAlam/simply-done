@@ -8,7 +8,6 @@ import {
 import express, { Request, Response } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
 import {
   verifyToken,
@@ -16,28 +15,23 @@ import {
   validateRegister,
   validateLogin,
 } from "./middleware";
-import { User, ApiResponse, LoginResponse } from "./types";
+import {
+  User,
+  ApiResponse,
+  LoginResponse,
+  INoteTypes,
+  INoteStatus,
+} from "./types";
 import { config } from "./config";
-
-// Note interfaces matching your frontend exactly
-interface ITodoTypes {
-  id: string;
-  text: string;
-  isCompleted: boolean;
-}
-
-interface INoteTypes {
-  _id?: ObjectId;
-  title: string;
-  content: string;
-  isTodo: boolean;
-  email: string;
-  todos?: ITodoTypes[];
-  isArchived: boolean;
-  isTrashed: boolean;
-  createdAt: Date;
-  updatedAt?: Date;
-}
+import {
+  success,
+  error,
+  created,
+  badRequest,
+  notFound,
+  unauthorized,
+  conflict,
+} from "./utils/response";
 
 const app = express();
 const port = config.PORT;
@@ -65,17 +59,6 @@ const client = new MongoClient(uri, {
 
 async function run(): Promise<void> {
   try {
-    // Add startup log
-    console.log("Starting server...");
-    console.log("📝 Config loaded:", {
-      PORT: config.PORT,
-      NODE_ENV: config.NODE_ENV,
-      DB_USER: config.DB_USER ? "✅ SET" : "❌ NOT SET",
-      DB_PASS: config.DB_PASS ? "✅ SET" : "❌ NOT SET",
-      ACCESS_TOKEN_SECRET: config.ACCESS_TOKEN_SECRET ? "✅ SET" : "❌ NOT SET",
-    });
-    console.log("🔗 MongoDB URI:", uri);
-
     await client.connect();
     console.log("Connected to MongoDB");
 
@@ -85,8 +68,7 @@ async function run(): Promise<void> {
 
     // Health check
     app.get("/health", (req: Request, res: Response) => {
-      res.json({
-        status: "Up and running!",
+      return success(res, "Up and running!", {
         timestamp: new Date().toISOString(),
       });
     });
@@ -103,28 +85,19 @@ async function run(): Promise<void> {
           });
 
           if (existingUser) {
-            res.status(StatusCodes.CONFLICT).json({
-              error: true,
-              message: "User already exists",
-            } as ApiResponse);
-            return;
+            return conflict(res, "User already exists");
           }
 
           user.password = await bcrypt.hash(user.password, saltRounds);
           user.createdAt = new Date();
           const result = await usersCollection.insertOne(user);
 
-          res.status(StatusCodes.CREATED).json({
-            error: false,
-            message: "User registered successfully",
-            data: { userId: result.insertedId },
-          } as ApiResponse);
-        } catch (error) {
-          console.error("Registration error:", error);
-          res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            error: true,
-            message: "Registration failed",
-          } as ApiResponse);
+          return created(res, "User registered successfully", {
+            userId: result.insertedId,
+          });
+        } catch (err) {
+          console.error("Registration error:", err);
+          return error(res, "Registration failed");
         }
       }
     );
@@ -137,11 +110,7 @@ async function run(): Promise<void> {
         const user = await usersCollection.findOne({ email });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
-          res.status(StatusCodes.UNAUTHORIZED).json({
-            error: true,
-            message: "Invalid credentials",
-          } as ApiResponse);
-          return;
+          return unauthorized(res, "Invalid credentials");
         }
 
         const token = jwt.sign(
@@ -159,12 +128,9 @@ async function run(): Promise<void> {
             userName: user.userName,
           },
         } as LoginResponse);
-      } catch (error) {
-        console.error("Login error:", error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: "Login failed",
-        } as ApiResponse);
+      } catch (err) {
+        console.error("Login error:", err);
+        return error(res, "Login failed");
       }
     });
 
@@ -174,13 +140,11 @@ async function run(): Promise<void> {
         const users = await usersCollection
           .find({}, { projection: { password: 0 } })
           .toArray();
-        res.json(users);
-      } catch (error) {
-        console.error("Get users error:", error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-          error: true,
-          message: "Failed to fetch users",
-        } as ApiResponse);
+
+        return success(res, "Users fetched successfully", users);
+      } catch (err) {
+        console.error("Get users error:", err);
+        return error(res, "Failed to fetch users");
       }
     });
 
@@ -196,25 +160,21 @@ async function run(): Promise<void> {
           }: { currentPassword: string; newPassword: string } = req.body;
 
           if (!currentPassword || !newPassword || newPassword.length < 6) {
-            res.status(StatusCodes.BAD_REQUEST).json({
-              error: true,
-              message: "Valid current and new passwords required (min 6 chars)",
-            } as ApiResponse);
-            return;
+            return badRequest(
+              res,
+              "Valid current and new passwords required (min 6 chars)"
+            );
           }
 
           const user = await usersCollection.findOne({
             email: req.user!.email,
           });
+
           if (
             !user ||
             !(await bcrypt.compare(currentPassword, user.password))
           ) {
-            res.status(StatusCodes.UNAUTHORIZED).json({
-              error: true,
-              message: "Current password is incorrect",
-            } as ApiResponse);
-            return;
+            return unauthorized(res, "Current password is incorrect");
           }
 
           const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
@@ -223,43 +183,33 @@ async function run(): Promise<void> {
             { $set: { password: hashedPassword } }
           );
 
-          res.json({
-            error: false,
-            message: "Password changed successfully",
-          } as ApiResponse);
-        } catch (error) {
-          console.error("Change password error:", error);
-          res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            error: true,
-            message: "Failed to change password",
-          } as ApiResponse);
+          return success(res, "Password changed successfully");
+        } catch (err) {
+          console.error("Change password error:", err);
+          return error(res, "Failed to change password");
         }
       }
     );
 
-    // ==================== NOTES ENDPOINTS (matching your frontend exactly) ====================
+    // ==================== NOTES ENDPOINTS ====================
 
     // Get all notes with search and filtering
-    app.get("/notes", async (req: Request, res: Response) => {
+    app.get("/notes", verifyToken, async (req: Request, res: Response) => {
       try {
-        const { email, searchTerm, isArchived, isTrashed } = req.query;
+        const { email, searchTerm, status } = req.query;
 
         if (!email) {
-          return res.status(400).json({
-            error: true,
-            message: "Email parameter is required",
-          });
+          return badRequest(res, "Email parameter is required");
         }
 
         let query: any = { email };
 
-        // Add archive/trash filters if provided
-        if (isArchived !== undefined) {
-          query.isArchived = isArchived === "true";
-        }
-
-        if (isTrashed !== undefined) {
-          query.isTrashed = isTrashed === "true";
+        // Simple status filter
+        if (status) {
+          if (!Object.values(INoteStatus).includes(status as INoteStatus)) {
+            return badRequest(res, "Invalid status filter");
+          }
+          query.status = status;
         }
 
         // Add search if provided
@@ -278,43 +228,37 @@ async function run(): Promise<void> {
           .sort({ createdAt: -1 })
           .toArray();
 
-        res.json(notes);
-      } catch (error) {
-        console.error("Error fetching notes:", error);
-        res.status(500).json({
-          error: true,
-          message: "Error fetching notes",
-        });
+        return success(res, "Notes fetched successfully", notes);
+      } catch (err) {
+        console.error("Error fetching notes:", err);
+        return error(res, "Error fetching notes");
       }
     });
 
     // Create a note
-    app.post("/notes", async (req: Request, res: Response) => {
+    app.post("/notes", verifyToken, async (req: Request, res: Response) => {
       try {
-        const { title, content, isArchived, isTrashed, isTodo, todos } =
-          req.body;
+        const { title, content, status, isTodo, todos } = req.body;
         const email = req.query.email;
 
         if (!email) {
-          return res.status(400).json({
-            error: true,
-            message: "Email parameter is required",
-          });
+          return badRequest(res, "Email parameter is required");
         }
 
         const user = await usersCollection.findOne({ email });
         if (!user) {
-          return res.status(404).json({
-            error: true,
-            message: "User not found",
-          });
+          return notFound(res, "User not found");
         }
 
+        // Validate status if provided
+        const validStatuses = ["active", "archived", "trashed"];
+        const noteStatus =
+          status && validStatuses.includes(status) ? status : "active";
+
         const note: INoteTypes = {
-          title,
-          content,
-          isArchived: isArchived || false,
-          isTrashed: isTrashed || false,
+          title: title || "",
+          content: content || "",
+          status: noteStatus,
           email: email as string,
           isTodo: isTodo || false,
           todos: isTodo ? todos || [] : [],
@@ -322,233 +266,191 @@ async function run(): Promise<void> {
         };
 
         const result = await notesCollection.insertOne(note);
-        res.json(result);
-      } catch (error) {
-        console.error("Error creating note:", error);
-        res.status(500).json({
-          error: true,
-          message: "Error creating note",
+
+        // Return the created note with its ID
+        const createdNote = await notesCollection.findOne({
+          _id: result.insertedId,
         });
+
+        return created(res, "Note created successfully", createdNote);
+      } catch (err) {
+        console.error("Error creating note:", err);
+        return error(res, "Error creating note");
       }
     });
 
     // Get single note
-    app.get("/notes/:id", async (req: Request, res: Response) => {
+    app.get("/notes/:id", verifyToken, async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
+        const email = req.query.email;
 
         if (!ObjectId.isValid(id)) {
-          return res.status(400).json({
-            error: true,
-            message: "Invalid note ID",
-          });
+          return badRequest(res, "Invalid note ID");
         }
 
-        const note = await notesCollection.findOne({
-          _id: new ObjectId(id),
-        });
+        // Build query - optionally verify the note belongs to the user
+        const query: any = { _id: new ObjectId(id) };
+        if (email) {
+          query.email = email;
+        }
+
+        const note = await notesCollection.findOne(query);
 
         if (!note) {
-          return res.status(404).json({
-            error: true,
-            message: "Note not found",
-          });
+          return notFound(res, "Note not found");
         }
 
-        res.json(note);
-      } catch (error) {
-        console.error("Error fetching note:", error);
-        res.status(500).json({
-          error: true,
-          message: "Error fetching note",
-        });
+        return success(res, "Note fetched successfully", note);
+      } catch (err) {
+        console.error("Error fetching note:", err);
+        return error(res, "Error fetching note");
       }
     });
 
-    // Update note (matches your frontend modal exactly)
-    app.patch("/notes/:id", async (req: Request, res: Response) => {
-      try {
-        const { id } = req.params;
-        const { isArchived, isTrashed, title, content, todos, isTodo } =
-          req.body;
-        const email = req.query.email;
+    // Update note
+    app.patch(
+      "/notes/:id",
+      verifyToken,
+      async (req: Request, res: Response) => {
+        try {
+          const { id } = req.params;
+          const { status, title, content, todos, isTodo } = req.body;
+          const email = req.query.email;
 
-        // Validate email
-        if (!email) {
-          return res.status(400).json({
-            error: true,
-            message: "Email parameter is required",
-          });
-        }
-
-        // Validate id
-        if (!ObjectId.isValid(id)) {
-          return res.status(400).json({
-            error: true,
-            message: "Invalid note ID",
-          });
-        }
-
-        // Check if note exists and belongs to user
-        const existingNote = await notesCollection.findOne({
-          _id: new ObjectId(id),
-          email,
-        });
-
-        if (!existingNote) {
-          return res.status(404).json({
-            error: true,
-            message: "Note not found",
-          });
-        }
-
-        const updateFields: Partial<INoteTypes> = {};
-
-        // Handle mutually exclusive states for archive/trash
-        if (isArchived !== undefined || isTrashed !== undefined) {
-          if (isArchived === true) {
-            // When archiving: set archived=true, trashed=false
-            updateFields.isArchived = true;
-            updateFields.isTrashed = false;
-          } else if (isTrashed === true) {
-            // When trashing: set trashed=true, archived=false
-            updateFields.isTrashed = true;
-            updateFields.isArchived = false;
-          } else if (isArchived === false && isTrashed === false) {
-            // When restoring to home: both false
-            updateFields.isArchived = false;
-            updateFields.isTrashed = false;
-          } else if (isArchived === false) {
-            // When un-archiving: archived=false
-            updateFields.isArchived = false;
-          } else if (isTrashed === false) {
-            // When un-trashing: trashed=false
-            updateFields.isTrashed = false;
+          // Validate email
+          if (!email) {
+            return badRequest(res, "Email parameter is required");
           }
-        }
 
-        // Update todos if provided (matches your frontend todo structure)
-        if (todos !== undefined) {
-          if (!Array.isArray(todos)) {
-            return res.status(400).json({
-              error: true,
-              message: "Todos must be an array",
-            });
+          // Validate id
+          if (!ObjectId.isValid(id)) {
+            return badRequest(res, "Invalid note ID");
           }
-          // Validate todo items structure: {id, text, isCompleted}
-          const isValidTodos = todos.every(
-            (todo: any) =>
-              todo.id &&
-              typeof todo.text === "string" &&
-              typeof todo.isCompleted === "boolean"
+
+          // Check if note exists and belongs to user
+          const existingNote = await notesCollection.findOne({
+            _id: new ObjectId(id),
+            email,
+          });
+
+          if (!existingNote) {
+            return notFound(res, "Note not found");
+          }
+
+          const updateFields: Partial<INoteTypes> = {};
+
+          // Simple status validation and update
+          if (status !== undefined) {
+            if (!Object.values(INoteStatus).includes(status)) {
+              return badRequest(
+                res,
+                "Invalid status. Must be 'active', 'archived', or 'trashed'"
+              );
+            }
+            updateFields.status = status;
+          }
+
+          // Update todos if provided
+          if (todos !== undefined) {
+            if (!Array.isArray(todos)) {
+              return badRequest(res, "Todos must be an array");
+            }
+
+            const isValidTodos = todos.every(
+              (todo: any) =>
+                todo.id &&
+                typeof todo.text === "string" &&
+                typeof todo.isCompleted === "boolean"
+            );
+
+            if (!isValidTodos) {
+              return badRequest(res, "Invalid todo items format");
+            }
+            updateFields.todos = todos;
+          }
+
+          // Update content fields if provided
+          if (title !== undefined) {
+            updateFields.title = title;
+          }
+
+          if (content !== undefined) {
+            updateFields.content = content;
+          }
+
+          updateFields.updatedAt = new Date();
+
+          // Update note
+          const result = await notesCollection.updateOne(
+            { _id: new ObjectId(id), email },
+            { $set: updateFields }
           );
-          if (!isValidTodos) {
-            return res.status(400).json({
-              error: true,
-              message: "Invalid todo items format",
-            });
+
+          if (result.modifiedCount === 0) {
+            return badRequest(res, "No changes made to note");
           }
-          updateFields.todos = todos;
-        }
 
-        // Update content fields if provided
-        if (title !== undefined) {
-          updateFields.title = title;
-        }
-
-        if (content !== undefined) {
-          updateFields.content = content;
-        }
-
-        updateFields.updatedAt = new Date();
-
-        // Update note
-        const result = await notesCollection.updateOne(
-          { _id: new ObjectId(id), email },
-          { $set: updateFields }
-        );
-
-        if (result.modifiedCount === 0) {
-          return res.status(400).json({
-            error: true,
-            message: "No changes made to note",
+          // Get updated note
+          const updatedNote = await notesCollection.findOne({
+            _id: new ObjectId(id),
+            email,
           });
+
+          return success(res, "Note updated successfully", updatedNote);
+        } catch (err) {
+          console.error("Error updating note:", err);
+          return error(res, "Error updating note");
         }
-
-        // Get updated note
-        const updatedNote = await notesCollection.findOne({
-          _id: new ObjectId(id),
-          email,
-        });
-
-        res.json({
-          success: true,
-          message: "Note updated successfully",
-          note: updatedNote,
-        });
-      } catch (error) {
-        console.error("Error updating note:", error);
-        res.status(500).json({
-          error: true,
-          message: "Error updating note",
-        });
       }
-    });
+    );
 
-    // Delete note (permanent deletion)
-    app.delete("/notes/:id", async (req: Request, res: Response) => {
-      try {
-        const { id } = req.params;
-        const email = req.query.email;
+    // Delete note
+    app.delete(
+      "/notes/:id",
+      verifyToken,
+      async (req: Request, res: Response) => {
+        try {
+          const { id } = req.params;
+          const email = req.query.email;
 
-        if (!email || !ObjectId.isValid(id)) {
-          return res.status(400).json({
-            error: true,
-            message: "Invalid request parameters",
+          if (!email || !ObjectId.isValid(id)) {
+            return badRequest(res, "Invalid request parameters");
+          }
+
+          const result = await notesCollection.deleteOne({
+            _id: new ObjectId(id),
+            email: email as string,
           });
+
+          if (result.deletedCount === 0) {
+            return notFound(res, "Note not found");
+          }
+
+          return success(res, "Note deleted successfully");
+        } catch (err) {
+          console.error("Error deleting note:", err);
+          return error(res, "Error deleting note");
         }
-
-        const result = await notesCollection.deleteOne({
-          _id: new ObjectId(id),
-          email,
-        });
-
-        if (result.deletedCount === 0) {
-          return res.status(404).json({
-            error: true,
-            message: "Note not found",
-          });
-        }
-
-        res.json({
-          success: true,
-          message: "Note deleted successfully",
-        });
-      } catch (error) {
-        console.error("Error deleting note:", error);
-        res.status(500).json({
-          error: true,
-          message: "Error deleting note",
-        });
       }
-    });
+    );
 
     app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-  } catch (error) {
-    console.error("❌ Database connection error:", error);
+  } catch (err) {
+    console.error("❌ Database connection error:", err);
     process.exit(1);
   }
 }
 
 // Add error handling for the main function
-run().catch((error) => {
-  console.error("❌ Failed to start server:", error);
+run().catch((err) => {
+  console.error("❌ Failed to start server:", err);
   process.exit(1);
 });
 
 // Add process error handlers
-process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error);
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
   process.exit(1);
 });
 

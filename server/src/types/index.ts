@@ -1,4 +1,3 @@
-// server/src/types.ts
 import { ObjectId } from "mongodb";
 
 export interface User {
@@ -9,19 +8,26 @@ export interface User {
   createdAt?: Date;
 }
 
-export interface Note {
-  _id?: ObjectId;
+export enum INoteStatus {
+  ACTIVE = "active",
+  ARCHIVED = "archived",
+  TRASHED = "trashed",
+}
+
+export interface ITodoTypes {
+  id: string;
+  text: string;
+  isCompleted: boolean;
+}
+
+export interface INoteTypes {
+  _id?: ObjectId | string;
   title: string;
   content: string;
-  isArchived: boolean;
-  isTrashed: boolean;
+  status: INoteStatus;
   email: string;
-  isTodo: boolean | null;
-  todos: Array<{
-    id: string;
-    text: string;
-    isCompleted: boolean;
-  }>;
+  isTodo: boolean;
+  todos?: ITodoTypes[];
   createdAt: Date;
   updatedAt?: Date;
 }

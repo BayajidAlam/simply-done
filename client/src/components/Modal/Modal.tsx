@@ -12,9 +12,10 @@ import {
   MdOutlineCheckBoxOutlineBlank,
 } from "react-icons/md";
 import { showErrorToast, showSuccessToast } from "../../utils/toast";
-import { archiveNote, trashNote, restoreNote } from "../../utils/noteAction"; 
+import { archiveNote, trashNote, restoreNote } from "../../utils/noteAction";
 import { INoteTypes, ITodoTypes, NoteStatus } from "../../Types";
 import useAuth from "../../hooks/useAuth";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ const Modal: React.FC<ModalProps> = ({
   const [todos, setTodos] = useState<ITodoTypes[]>(selectedNote?.todos || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -108,8 +110,8 @@ const Modal: React.FC<ModalProps> = ({
         {
           method: "PATCH",
           headers: {
-            "Content-Type": "application/json", 
-            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         }
@@ -138,22 +140,25 @@ const Modal: React.FC<ModalProps> = ({
     if (success) {
       refetch();
       setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
 
   const handleTrash = async () => {
-    const success = await trashNote(selectedNote._id, userEmail); 
+    const success = await trashNote(selectedNote._id, userEmail);
     if (success) {
       refetch();
       setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
 
   const handleRestore = async () => {
-    const success = await restoreNote(selectedNote._id, userEmail); 
+    const success = await restoreNote(selectedNote._id, userEmail);
     if (success) {
       refetch();
       setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
 
@@ -297,7 +302,8 @@ const Modal: React.FC<ModalProps> = ({
             <div className="flex items-center justify-between pt-4 border-t border-slate-200">
               <div className="flex items-center gap-2">
                 {/* Restore Button */}
-                {(selectedNote.status === NoteStatus.ARCHIVED || selectedNote.status === NoteStatus.TRASHED) && (
+                {(selectedNote.status === NoteStatus.ARCHIVED ||
+                  selectedNote.status === NoteStatus.TRASHED) && (
                   <Button
                     type="button"
                     onClick={handleRestore}

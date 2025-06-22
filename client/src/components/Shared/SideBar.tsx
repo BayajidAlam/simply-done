@@ -8,6 +8,7 @@ import { IoKeyOutline } from "react-icons/io5";
 import { useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
 import useFetchNotes from "../../hooks/useNotes";
+import { NoteStatus } from "../../Types";
 
 const navigationItems = [
   {
@@ -15,21 +16,21 @@ const navigationItems = [
     link: "/",
     icon: <MdLightbulbOutline className="w-5 h-5" />,
     description: "All your notes",
-    queryParams: { isTrashed: false, isArchived: false },
+    status: NoteStatus.ACTIVE,
   },
   {
     name: "Archive",
     link: "/archive",
     icon: <HiOutlineArchiveBoxArrowDown className="w-5 h-5" />,
     description: "Archived notes",
-    queryParams: { isTrashed: false, isArchived: true },
+    status: NoteStatus.ARCHIVED,
   },
   {
     name: "Trash",
     link: "/trash",
     icon: <GoTrash className="w-5 h-5" />,
     description: "Deleted notes",
-    queryParams: { isTrashed: true, isArchived: false },
+    status: NoteStatus.TRASHED,
   },
 ];
 
@@ -54,36 +55,33 @@ const Sidebar: React.FC<SideBarProps> = ({ isSideBarExpanded, onClose }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Get note counts for each section
+  // Get note counts for each section using the new status-based approach
   const { notes: homeNotes } = useFetchNotes({
     email: userEmail,
     searchTerm: "",
-    isTrashed: false,
-    isArchived: false,
+    status: NoteStatus.ACTIVE,
   });
 
   const { notes: archiveNotes } = useFetchNotes({
     email: userEmail,
     searchTerm: "",
-    isTrashed: false,
-    isArchived: true,
+    status: NoteStatus.ARCHIVED,
   });
 
   const { notes: trashNotes } = useFetchNotes({
     email: userEmail,
     searchTerm: "",
-    isTrashed: true,
-    isArchived: false,
+    status: NoteStatus.TRASHED,
   });
 
   const getNoteCounts = (link: string) => {
     switch (link) {
       case "/":
-        return homeNotes?.length || 0;
+        return Array.isArray(homeNotes) ? homeNotes.length : 0;
       case "/archive":
-        return archiveNotes?.length || 0;
+        return Array.isArray(archiveNotes) ? archiveNotes.length : 0;
       case "/trash":
-        return trashNotes?.length || 0;
+        return Array.isArray(trashNotes) ? trashNotes.length : 0;
       default:
         return 0;
     }
@@ -130,7 +128,7 @@ const Sidebar: React.FC<SideBarProps> = ({ isSideBarExpanded, onClose }) => {
                 <span className="text-white font-bold text-sm">N</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-slate-800">NotesApp</h1>
+                <h1 className="text-lg font-bold text-slate-800">SimplyDone</h1>
                 <p className="text-xs text-slate-500">Organize your thoughts</p>
               </div>
             </div>

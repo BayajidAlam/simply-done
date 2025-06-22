@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useAppContext } from "../../providers/AppProvider";
 import useFetchNotes from "../../hooks/useNotes";
 import useAuth from "../../hooks/useAuth";
-import { archiveNote, trashNote } from "../../utils/noteAction"; 
-import { INoteTypes, NoteStatus } from "../../Types"; 
+import { archiveNote, trashNote } from "../../utils/noteAction"; // Updated import
+import { INoteTypes, NoteStatus } from "../../Types"; // Added NoteStatus import
 import LoadingState from "../../components/Shared/LoadingState";
 import CreateNote from "../../components/Shared/CreateNote";
 import EmptyState from "../../components/Shared/EmptyState";
 import NoteCard from "../../components/Shared/NoteCard";
 import Modal from "../../components/Modal/Modal";
+import { useQueryClient } from "@tanstack/react-query";
 
 const HomePage = () => {
   const { isListView, searchTerm } = useAppContext();
@@ -16,6 +17,8 @@ const HomePage = () => {
   const userEmail = user?.email as string;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<INoteTypes | null>(null);
+
+  const queryClient = useQueryClient();
 
   const { notes, notesLoading, refetch } = useFetchNotes({
     email: userEmail,
@@ -34,6 +37,7 @@ const HomePage = () => {
     const success = await archiveNote(note._id, userEmail);
     if (success) {
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
 
@@ -43,6 +47,7 @@ const HomePage = () => {
     const success = await trashNote(note._id, userEmail);
     if (success) {
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
     }
   };
 
