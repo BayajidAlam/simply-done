@@ -8,7 +8,7 @@ import {
 } from "react-icons/md";
 import { showErrorToast, showSuccessToast } from "../../utils/toast";
 import useAuth from "../../hooks/useAuth";
-import { ITodoTypes } from "../../Types";
+import { ITodoTypes, NoteStatus } from "../../Types";
 
 interface CreateNoteProps {
   refetch: () => void;
@@ -73,13 +73,14 @@ const CreateNote: React.FC<CreateNoteProps> = ({ refetch }) => {
     setIsSubmitting(true);
 
     try {
+      const token = localStorage.getItem("access-token");
+      
       const payload = {
         title: data.title || "Untitled",
         content: data.content || "",
         isTodo,
         todos: isTodo ? todos.filter((todo) => todo.text.trim()) : [],
-        isArchived: false,
-        isTrashed: false,
+        status: NoteStatus.ACTIVE, // Use new status field instead of isArchived/isTrashed
       };
 
       const response = await fetch(
@@ -88,6 +89,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ refetch }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`, 
           },
           body: JSON.stringify(payload),
         }
@@ -112,7 +114,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ refetch }) => {
 
   if (!isExpanded) {
     return (
-      <div className="mb-8">
+      <div className="mb-8 mt-2">
         <div
           onClick={() => setIsExpanded(true)}
           className="bg-white border-2 border-slate-200 rounded-2xl p-4 cursor-pointer 
@@ -133,7 +135,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ refetch }) => {
   }
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 mt-2">
       <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
         <div className="bg-white border-2 border-blue-200 rounded-2xl shadow-lg overflow-hidden">
           {/* Header with Note Type Toggle */}

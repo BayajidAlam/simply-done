@@ -1,37 +1,19 @@
 import { showErrorToast, showSuccessToast } from "./toast";
+import { NoteStatus } from "../Types";
 
 interface UpdateNoteStatusParams {
   noteId: string;
   email: string;
-  action: "archive" | "trash" | "restore";
-  currentStatus?: boolean;
-  queryClient: any;
-  currentPage: "home" | "archive" | "trash";
+  status: NoteStatus;
 }
 
 export const updateNoteStatus = async ({
   noteId,
   email,
-  action,
-  currentStatus,
-  queryClient,
-  currentPage,
+  status,
 }: UpdateNoteStatusParams) => {
   try {
-    let requestBody;
-    
-    // Handle different actions
-    if (action === "restore") {
-      requestBody = {
-        isArchived: false,
-        isTrashed: false,
-      };
-    } else {
-      requestBody = {
-        [action === "archive" ? "isArchived" : "isTrashed"]: !currentStatus,
-      };
-    }
-
+    const token = localStorage.getItem("access-token");
     const response = await fetch(
       `${
         import.meta.env.VITE_APP_BACKEND_ROOT_URL
@@ -40,80 +22,36 @@ export const updateNoteStatus = async ({
         method: "PATCH",
         headers: {
           "content-type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ status }),
       }
     );
 
     const result = await response.json();
     if (result.success) {
       const messages = {
-        archive: currentStatus ? "Note unarchived!" : "Note archived!",
-        trash: currentStatus ? "Note restored!" : "Note moved to trash!",
-        restore: "Note restored to home!",
+        [NoteStatus.ARCHIVED]: "Note archived!",
+        [NoteStatus.TRASHED]: "Note moved to trash!",
+        [NoteStatus.ACTIVE]: "Note restored!",
       };
-      showSuccessToast(messages[action]);
-      
-      // Invalidate only specific pages based on current page and action
-      await invalidateSpecificPages(queryClient, email, action, currentPage);
-      
+      showSuccessToast(messages[status]);
       return true;
     }
     return false;
   } catch (error) {
     console.error(error);
-    showErrorToast(`Failed to ${action} note`);
+    showErrorToast(`Failed to update note status`);
     return false;
   }
 };
 
-// Helper function to invalidate only specific relevant pages
-const invalidateSpecificPages = async (
-  queryClient: any,
-  email: string,
-  action: "archive" | "trash" | "restore",
-  currentPage: "home" | "archive" | "trash"
-) => {
-  const queries = [];
+// Specific action functions for easier usage
+export const archiveNote = (noteId: string, email: string) =>
+  updateNoteStatus({ noteId, email, status: NoteStatus.ARCHIVED });
 
-  // Define query keys for each page
-  const homeQuery = ["notes", email, "", false, false];
-  const archiveQuery = ["notes", email, "", false, true];
-  const trashQuery = ["notes", email, "", true, false];
+export const trashNote = (noteId: string, email: string) =>
+  updateNoteStatus({ noteId, email, status: NoteStatus.TRASHED });
 
-  if (currentPage === "home") {
-    // From Home page
-    queries.push(homeQuery); // Always refresh current page
-    
-    if (action === "archive") {
-      queries.push(archiveQuery); // Also refresh archive page
-    } else if (action === "trash") {
-      queries.push(trashQuery); // Also refresh trash page
-    }
-  } 
-  else if (currentPage === "archive") {
-    // From Archive page
-    queries.push(archiveQuery); // Always refresh current page
-    
-    if (action === "trash") {
-      queries.push(trashQuery); // Also refresh trash page
-    } else if (action === "restore") {
-      queries.push(homeQuery); // Also refresh home page
-    }
-  } 
-  else if (currentPage === "trash") {
-    // From Trash page
-    queries.push(trashQuery); // Always refresh current page
-    
-    if (action === "archive") {
-      queries.push(archiveQuery); // Also refresh archive page
-    } else if (action === "restore") {
-      queries.push(homeQuery); // Also refresh home page
-    }
-  }
-
-  // Invalidate only the specific queries
-  for (const queryKey of queries) {
-    await queryClient.invalidateQueries({ queryKey });
-  }
-};
+export const restoreNote = (noteId: string, email: string) =>
+  updateNoteStatus({ noteId, email, status: NoteStatus.ACTIVE });

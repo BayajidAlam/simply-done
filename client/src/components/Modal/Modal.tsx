@@ -12,10 +12,9 @@ import {
   MdOutlineCheckBoxOutlineBlank,
 } from "react-icons/md";
 import { showErrorToast, showSuccessToast } from "../../utils/toast";
-import { updateNoteStatus } from "../../utils/noteAction";
-import { INoteTypes, ITodoTypes } from "../../Types";
+import { archiveNote, trashNote, restoreNote } from "../../utils/noteAction"; 
+import { INoteTypes, ITodoTypes, NoteStatus } from "../../Types";
 import useAuth from "../../hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface ModalProps {
   isOpen: boolean;
@@ -37,7 +36,6 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   const { user } = useAuth();
   const userEmail = user?.email as string;
-  const queryClient = useQueryClient();
 
   const [todos, setTodos] = useState<ITodoTypes[]>(selectedNote?.todos || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,6 +99,7 @@ const Modal: React.FC<ModalProps> = ({
         ...data,
         todos: selectedNote.isTodo ? todos : [],
       };
+      const token = localStorage.getItem("access-token");
 
       const response = await fetch(
         `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes/${
@@ -109,7 +108,8 @@ const Modal: React.FC<ModalProps> = ({
         {
           method: "PATCH",
           headers: {
-            "content-type": "application/json",
+            "Content-Type": "application/json", 
+            "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         }
@@ -122,6 +122,8 @@ const Modal: React.FC<ModalProps> = ({
         showSuccessToast("Note updated successfully!");
         setIsOpen(false);
         setHasUnsavedChanges(false);
+      } else {
+        showErrorToast(result.message || "Failed to update note");
       }
     } catch (error) {
       console.error(error);
@@ -132,50 +134,25 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   const handleArchive = async () => {
-    const success = await updateNoteStatus({
-      noteId: selectedNote._id,
-      email: userEmail,
-      action: "archive",
-      currentStatus: selectedNote.isArchived,
-      queryClient,
-      currentPage: selectedNote.isTrashed
-        ? "trash"
-        : selectedNote.isArchived
-        ? "archive"
-        : "home",
-    });
+    const success = await archiveNote(selectedNote._id, userEmail);
     if (success) {
+      refetch();
       setIsOpen(false);
     }
   };
 
   const handleTrash = async () => {
-    const success = await updateNoteStatus({
-      noteId: selectedNote._id,
-      email: userEmail,
-      action: "trash",
-      currentStatus: selectedNote.isTrashed,
-      queryClient,
-      currentPage: selectedNote.isTrashed
-        ? "trash"
-        : selectedNote.isArchived
-        ? "archive"
-        : "home",
-    });
+    const success = await trashNote(selectedNote._id, userEmail); 
     if (success) {
+      refetch();
       setIsOpen(false);
     }
   };
 
   const handleRestore = async () => {
-    const success = await updateNoteStatus({
-      noteId: selectedNote._id,
-      email: userEmail,
-      action: "restore",
-      queryClient,
-      currentPage: selectedNote.isTrashed ? "trash" : "archive",
-    });
+    const success = await restoreNote(selectedNote._id, userEmail); 
     if (success) {
+      refetch();
       setIsOpen(false);
     }
   };
@@ -320,7 +297,7 @@ const Modal: React.FC<ModalProps> = ({
             <div className="flex items-center justify-between pt-4 border-t border-slate-200">
               <div className="flex items-center gap-2">
                 {/* Restore Button */}
-                {(selectedNote.isArchived || selectedNote.isTrashed) && (
+                {(selectedNote.status === NoteStatus.ARCHIVED || selectedNote.status === NoteStatus.TRASHED) && (
                   <Button
                     type="button"
                     onClick={handleRestore}
@@ -334,7 +311,7 @@ const Modal: React.FC<ModalProps> = ({
                 )}
 
                 {/* Archive Button */}
-                {!selectedNote.isArchived && (
+                {selectedNote.status !== NoteStatus.ARCHIVED && (
                   <Button
                     type="button"
                     onClick={handleArchive}
@@ -348,7 +325,7 @@ const Modal: React.FC<ModalProps> = ({
                 )}
 
                 {/* Trash Button */}
-                {!selectedNote.isTrashed && (
+                {selectedNote.status !== NoteStatus.TRASHED && (
                   <Button
                     type="button"
                     onClick={handleTrash}

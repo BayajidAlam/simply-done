@@ -1,18 +1,18 @@
 import { useState } from "react";
+import { GoTrash } from "react-icons/go";
 import { useAppContext } from "../../providers/AppProvider";
+import ViewNotesModal from "../../components/Modal/Modal";
 import useFetchNotes from "../../hooks/useNotes";
 import useAuth from "../../hooks/useAuth";
-import { updateNoteStatus } from "../../utils/noteAction";
-import { useQueryClient } from "@tanstack/react-query";
+import { trashNote, restoreNote } from "../../utils/noteAction";
+import { Button } from "../../components/ui/button";
 import useDeleteNote from "../../hooks/useDeleteNote";
-import { INoteTypes } from "../../Types";
-import { HiOutlineArchiveBoxArrowDown } from "react-icons/hi2";
-import LoadingState from "../../components/Shared/LoadingState";
-import EmptyState from "../../components/Shared/EmptyState";
-import NoteCard from "../../components/Shared/NoteCard";
-import Modal from "../../components/Modal/Modal";
+import { AiFillDelete } from "react-icons/ai";
+import { BiHome } from "react-icons/bi";
+import { INoteTypes, NoteStatus } from "../../Types";
+import CreateNote from "../../components/Shared/CreateNote";
 
-const AchievePage = () => {
+const ArchivePage = () => {
   const { isListView } = useAppContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<INoteTypes | null>(null);
@@ -20,24 +20,21 @@ const AchievePage = () => {
   const { user } = useAuth();
   const userEmail = user?.email as string;
 
-  const queryClient = useQueryClient();
-
-  const { notes, notesLoading, refetch } = useFetchNotes({
+  const { notes, refetch } = useFetchNotes({
     email: userEmail,
     searchTerm: "",
-    isTrashed: false,
-    isArchived: true,
-  });
-
-  const { deleteNote } = useDeleteNote({
-    email: userEmail,
-    onSuccess: refetch,
+    status: NoteStatus.ARCHIVED, // Only get archived notes
   });
 
   const openModal = (note: INoteTypes): void => {
     setSelectedNote(note);
     setIsModalOpen(true);
   };
+
+  const { deleteNote } = useDeleteNote({
+    email: userEmail,
+    onSuccess: refetch,
+  });
 
   const handleDelete = async (e: React.MouseEvent, noteId: string) => {
     e.stopPropagation();
@@ -46,122 +43,112 @@ const AchievePage = () => {
 
   const handleTrash = async (e: React.MouseEvent, note: INoteTypes) => {
     e.stopPropagation();
-
-    const success = await updateNoteStatus({
-      noteId: note._id,
-      email: userEmail,
-      action: "trash",
-      currentStatus: note.isTrashed,
-      queryClient,
-      currentPage: "archive",
-    });
+    const success = await trashNote(note._id, userEmail);
+    if (success) {
+      refetch();
+    }
   };
 
-  const handleRestoreToHome = async (e: React.MouseEvent, note: INoteTypes) => {
+  const handleRestore = async (e: React.MouseEvent, note: INoteTypes) => {
     e.stopPropagation();
-
-    const success = await updateNoteStatus({
-      noteId: note._id,
-      email: userEmail,
-      action: "restore",
-      queryClient,
-      currentPage: "archive",
-    });
+    const success = await restoreNote(note._id, userEmail);
+    if (success) {
+      refetch();
+    }
   };
-
-  if (notesLoading) {
-    return <LoadingState />;
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50/30 to-yellow-50/50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-amber-100 rounded-xl">
-              <HiOutlineArchiveBoxArrowDown className="w-8 h-8 text-amber-600" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800">Archive</h1>
-              <p className="text-slate-600">
-                {notes?.length > 0
-                  ? `${notes.length} archived ${
-                      notes.length === 1 ? "note" : "notes"
-                    }`
-                  : "No archived notes yet"}
-              </p>
-            </div>
-          </div>
+    <div className="w-full">
+      <CreateNote refetch={refetch} />
 
-          {/* Archive Info Banner */}
-          {notes?.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 bg-amber-400 rounded-full mt-0.5 flex-shrink-0"></div>
-                <div>
-                  <h3 className="font-semibold text-amber-800 mb-1">
-                    Archived Notes
-                  </h3>
-                  <p className="text-amber-700 text-sm">
-                    These notes are hidden from your main workspace but
-                    preserved for future reference. You can restore them to your
-                    home page or move them to trash.
-                  </p>
-                </div>
+      <div
+        className={`grid gap-3 transition-all duration-500 ease-in-out ${
+          isListView
+            ? "grid-cols-1 pt-16"
+            : "lg:grid-cols-4 md:grid-cols-1 pt-16"
+        }`}
+      >
+        {notes?.map((note: INoteTypes, index: number) => (
+          <div
+            className={`border rounded-md p-2 transition-all duration-500 ease-in-out ${
+              isListView ? "w-[600px] mx-auto" : "w-96"
+            }`}
+            key={index}
+            onClick={() => openModal(note)}
+          >
+            <h1 className="text-md font-bold">{note.title}</h1>
+            {note.isTodo ? (
+              <div>
+                <h2 className="font-semibold text-lg mb-2">To-Do List:</h2>
+                <ul className="space-y-2">
+                  {note.todos?.map((todo) => (
+                    <li key={todo.id} className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={todo.isCompleted}
+                        readOnly
+                        className="form-checkbox h-4 w-4 text-blue-500"
+                      />
+                      <span
+                        className={`${
+                          todo.isCompleted
+                            ? "line-through text-gray-500"
+                            : "text-black"
+                        }`}
+                      >
+                        {todo.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p>{note.content}</p>
+            )}
+            <div className="flex justify-between items-center mt-4">
+              <Button
+                variant={"outline"}
+                onClick={(e) => handleRestore(e, note)}
+                className="text-green-600 hover:text-green-700 flex items-center gap-1"
+                title="Restore to Home"
+              >
+                <BiHome />
+                <span className="hidden sm:inline">Restore</span>
+              </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant={"outline"}
+                  onClick={(e) => handleTrash(e, note)}
+                  className="text-gray-500 hover:text-red-500"
+                  title="Move to Trash"
+                >
+                  <GoTrash />
+                </Button>
+                <Button
+                  variant={"outline"}
+                  onClick={(e) => handleDelete(e, note._id)}
+                  className="hover:text-red-500 text-red-500"
+                  title="Delete Forever"
+                >
+                  <AiFillDelete />
+                </Button>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Notes Grid */}
-        {notes?.length === 0 ? (
-          <EmptyState
-            title="No archived notes"
-            description="Notes you archive will appear here. Archive notes to keep them safe but out of your main workspace."
-            icon="📁"
-            actionText="Go to Notes"
-            actionLink="/"
-          />
-        ) : (
-          <div className="space-y-6">
-            {/* Notes Grid */}
-            <div
-              className={`grid gap-6 transition-all duration-500 ease-in-out ${
-                isListView
-                  ? "grid-cols-1"
-                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              }`}
-            >
-              {notes.map((note: INoteTypes) => (
-                <NoteCard
-                  key={note._id?.toString()}
-                  note={note}
-                  onEdit={openModal}
-                  onTrash={handleTrash}
-                  onRestore={handleRestoreToHome}
-                  onDelete={handleDelete}
-                  showRestoreButton={true}
-                  showArchiveButton={false}
-                  showTrashButton={true}
-                  showDeleteButton={true}
-                  isListView={isListView}
-                />
-              ))}
-            </div>
           </div>
-        )}
+        ))}
+      </div>
 
-        {/* Modal */}
-        <Modal
+      {selectedNote && (
+        <ViewNotesModal
           refetch={refetch}
           isOpen={isModalOpen}
           setIsOpen={setIsModalOpen}
-          selectedNote={selectedNote as INoteTypes}
+          selectedNote={selectedNote}
         />
-      </div>
+      )}
     </div>
   );
 };
 
-export default AchievePage;
+export default ArchivePage;

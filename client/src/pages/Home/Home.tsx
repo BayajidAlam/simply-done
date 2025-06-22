@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useAppContext } from "../../providers/AppProvider";
 import useFetchNotes from "../../hooks/useNotes";
 import useAuth from "../../hooks/useAuth";
-import { updateNoteStatus } from "../../utils/noteAction";
-import { useQueryClient } from "@tanstack/react-query";
-import { INoteTypes } from "../../Types";
+import { archiveNote, trashNote } from "../../utils/noteAction"; 
+import { INoteTypes, NoteStatus } from "../../Types"; 
 import LoadingState from "../../components/Shared/LoadingState";
 import CreateNote from "../../components/Shared/CreateNote";
 import EmptyState from "../../components/Shared/EmptyState";
@@ -18,13 +17,10 @@ const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<INoteTypes | null>(null);
 
-  const queryClient = useQueryClient();
-
   const { notes, notesLoading, refetch } = useFetchNotes({
     email: userEmail,
     searchTerm,
-    isTrashed: false,
-    isArchived: false,
+    status: NoteStatus.ACTIVE,
   });
 
   const openModal = (note: INoteTypes) => {
@@ -35,27 +31,19 @@ const HomePage = () => {
   const handleArchive = async (e: React.MouseEvent, note: INoteTypes) => {
     e.stopPropagation();
 
-    const success = await updateNoteStatus({
-      noteId: note._id,
-      email: userEmail,
-      action: "archive",
-      currentStatus: note.isArchived,
-      queryClient,
-      currentPage: "home",
-    });
+    const success = await archiveNote(note._id, userEmail);
+    if (success) {
+      refetch();
+    }
   };
 
   const handleTrash = async (e: React.MouseEvent, note: INoteTypes) => {
     e.stopPropagation();
 
-    const success = await updateNoteStatus({
-      noteId: note._id,
-      email: userEmail,
-      action: "trash",
-      currentStatus: note.isTrashed,
-      queryClient,
-      currentPage: "home",
-    });
+    const success = await trashNote(note._id, userEmail);
+    if (success) {
+      refetch();
+    }
   };
 
   if (notesLoading) {

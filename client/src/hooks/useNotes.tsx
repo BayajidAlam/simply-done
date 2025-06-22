@@ -1,17 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
+import { NoteStatus } from "../Types";
 
 interface NotesParams {
   email: string;
   searchTerm?: string;
-  isTrashed?: boolean;
-  isArchived?: boolean;
+  status?: NoteStatus;
 }
 
 const useFetchNotes = ({
   email,
   searchTerm,
-  isTrashed,
-  isArchived,
+  status,
 }: NotesParams) => {
   const {
     data: notes = [],
@@ -19,7 +18,7 @@ const useFetchNotes = ({
     error,
     refetch,
   } = useQuery({
-    queryKey: ["notes", email, searchTerm, isTrashed, isArchived],
+    queryKey: ["notes", email, searchTerm, status],
     queryFn: async () => {
       if (!email) {
         throw new Error("Email is required");
@@ -28,24 +27,37 @@ const useFetchNotes = ({
       const params = new URLSearchParams();
       params.append("email", email);
       if (searchTerm) params.append("searchTerm", searchTerm);
-      if (isTrashed !== undefined) params.append("isTrashed", String(isTrashed));
-      if (isArchived !== undefined) params.append("isArchived", String(isArchived));
+      if (status) params.append("status", status);
 
-      const url = `${import.meta.env.VITE_APP_BACKEND_ROOT_URL}/notes?${params.toString()}`;
+      const url = `${
+        import.meta.env.VITE_APP_BACKEND_ROOT_URL
+      }/notes?${params.toString()}`;
       console.log("Fetching URL:", url);
 
       try {
-        const res = await fetch(url);
+        // Get token from localStorage
+        const token = localStorage.getItem("access-token");
+        
+        const res = await fetch(url, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
         
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         
-        const data = await res.json();
-        console.log("Fetched data:", data);
+        const result = await res.json();
+        console.log("API Response:", result);
         
-        // Your backend returns an array directly for GET /notes
-        return Array.isArray(data) ? data : [];
+        // Extract data field from response if it exists, otherwise return as-is
+        const notesData = result.data || result;
+        console.log("Extracted notes data:", notesData);
+        
+        // Ensure we return an array
+        return Array.isArray(notesData) ? notesData : [];
       } catch (error) {
         console.error("Fetch error:", error);
         throw error;
@@ -54,6 +66,15 @@ const useFetchNotes = ({
     enabled: !!email,
     retry: 1,
     staleTime: 30000,
+  });
+
+  console.log("Query state:", {
+    email,
+    searchTerm,
+    status,
+    isLoading: notesLoading,
+    error,
+    notes,
   });
 
   return { notes, notesLoading, error, refetch };

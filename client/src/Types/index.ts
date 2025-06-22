@@ -2,11 +2,16 @@ export interface IUser {
   email: string;
   userName: string;
 }
-
 export interface ITodoTypes {
   id: string;
   text: string;
   isCompleted: boolean;
+}
+
+export enum NoteStatus {
+  ACTIVE = "active",
+  ARCHIVED = "archived", 
+  TRASHED = "trashed"
 }
 
 export interface INoteTypes {
@@ -16,7 +21,7 @@ export interface INoteTypes {
   isTodo: boolean;
   email: string;
   todos?: ITodoTypes[];
-  isArchived: boolean;
-  isTrashed: boolean;
-  createdAt: string;
+  status: NoteStatus;
+  createdAt: Date;
+  updatedAt?: Date;
 }
