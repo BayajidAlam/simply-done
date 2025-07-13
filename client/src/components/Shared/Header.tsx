@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { HiOutlineMenuAlt2 } from "react-icons/hi";
 import { BiSearch, BiGrid, BiListUl, BiChevronRight } from "react-icons/bi";
 import { RxHamburgerMenu } from "react-icons/rx";
-import { MdDarkMode, MdLightMode } from "react-icons/md";
 import { useAppContext } from "../../providers/AppProvider";
 import { debounce } from "lodash";
 
@@ -17,7 +16,6 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const { isListView, setIsListView, searchTerm, setSearchTerm } =
     useAppContext();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [inputValue, setInputValue] = useState(searchTerm);
@@ -59,11 +57,6 @@ const Header: React.FC<HeaderProps> = ({
     setInputValue("");
     setSearchTerm("");
     debouncedSearch.cancel();
-  };
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
   };
 
   // Cleanup debounce on unmount
@@ -203,20 +196,6 @@ const Header: React.FC<HeaderProps> = ({
               <BiListUl className="w-4 h-4" />
             </button>
           </div>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 
-              transition-colors duration-200"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDarkMode ? (
-              <MdLightMode className="w-5 h-5" />
-            ) : (
-              <MdDarkMode className="w-5 h-5" />
-            )}
-          </button>
         </div>
       </div>
     </header>

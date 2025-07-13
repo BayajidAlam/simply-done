@@ -10,7 +10,24 @@ PULUMI_DIR=pulumi_IaC
 # Environment variables
 ENV_FILE=$(FRONTEND_DIR)/.env
 
-.PHONY: build-frontend build-backend push-frontend push-backend build-all push-all clean clear up down logs setup-ansible run-ansible deploy
+.PHONY: build-frontend build-backend push-frontend push-backend build-all push-all clean clear up down logs setup-ansible run-ansible deploy-all help
+
+# Help target
+help:
+	@echo "Available targets:"
+	@echo "  build-frontend  : Build the frontend Docker image"
+	@echo "  build-backend   : Build the backend Docker image"
+	@echo "  build-all      : Build both frontend and backend images"
+	@echo "  push-frontend  : Push frontend image to Docker Hub"
+	@echo "  push-backend   : Push backend image to Docker Hub"
+	@echo "  push-all       : Push both images to Docker Hub"
+	@echo "  deploy-all     : Complete deployment (build, push, infrastructure, provision)"
+	@echo "  clean          : Clean up Docker images and environment files"
+	@echo "  up             : Start containers using docker-compose (local)"
+	@echo "  down           : Stop and remove containers (local)"
+	@echo "  logs           : View container logs (local)"
+
+.DEFAULT_GOAL := help
 
 # Setup environment for frontend
 setup-frontend-env:
@@ -50,26 +67,6 @@ build-all: build-frontend build-backend
 # Push both images
 push-all: push-frontend push-backend
 
-# Clean up local Docker images and environment files
-clean:
-	@echo "Cleaning up local Docker images and environment files..."
-	-docker rmi $(FRONTEND_IMAGE):latest $(BACKEND_IMAGE):latest 2>/dev/null || true
-	-rm -f $(ENV_FILE)
-
-# Run both containers using docker-compose
-up:
-	@echo "Starting containers..."
-	docker-compose up -d
-
-# Stop and remove containers, networks, and volumes created by docker-compose
-down:
-	@echo "Stopping containers and cleaning up..."
-	docker-compose down -v --remove-orphans
-
-# Tail logs from docker-compose
-logs:
-	docker-compose logs -f
-
 # Setup Ansible inventory
 setup-ansible:
 	@echo "Setting up Ansible inventory..."
@@ -77,39 +74,49 @@ setup-ansible:
 	npm install js-yaml @types/js-yaml && \
 	npx ts-node scripts/updateHosts.ts
 
-# Run Ansible playbook
+# Run Ansible playbook for frontend only
 run-ansible:
-	@echo "Running Ansible playbook..."
+	@echo "Running Ansible playbook for frontend..."
 	cd $(PULUMI_DIR) && ansible-playbook -i ansible/inventory/hosts.yml ansible/site.yml
 
+# Run MongoDB playbook
 run-mongodb-playbook:
 	@echo "Running MongoDB Ansible playbook..."
 	ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/provision_mongodb.yml
 
-# Run Backend playbook
-run-backend-playbook:
-	@echo "Running Backend Ansible playbook..."
-	ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/provision_backend.yml
+# MAIN DEPLOY COMMAND - Complete deployment
+deploy-all: push-all
+	@echo "🚀 Starting complete deployment..."
+	@echo "📦 Images pushed to Docker Hub"
+	@echo "🏗️  Deploying infrastructure with Pulumi..."
+	cd $(PULUMI_DIR) && pulumi up --yes
+	@echo "⏳ Waiting for instances to boot (90 seconds)..."
+	sleep 90
+	@echo "🗄️  Setting up MongoDB..."
+	make run-mongodb-playbook
+	@echo "⏳ Waiting for MongoDB to be ready (30 seconds)..."
+	sleep 30
+	@echo "🌐 Setting up frontend..."
+	make setup-ansible
+	make run-ansible
+	@echo "✅ Deployment complete!"
+	@echo "🎯 ASG will automatically manage backend scaling (2-5 instances)"
+	@echo "🌍 Frontend accessible via ALB DNS name"
 
-# Deploy everything
-deploy: push-all setup-ansible run-mongodb-playbook run-backend-playbook run-ansible
-	@echo "Deployment complete!"
+# Clean up local Docker images and environment files
+clean:
+	@echo "Cleaning up local Docker images and environment files..."
+	-docker rmi $(FRONTEND_IMAGE):latest $(BACKEND_IMAGE):latest 2>/dev/null || true
+	-rm -f $(ENV_FILE)
 
-# Help target
-help:
-	@echo "Available targets:"
-	@echo "  build-frontend  : Build the frontend Docker image"
-	@echo "  build-backend   : Build the backend Docker image"
-	@echo "  build-all      : Build both frontend and backend images"
-	@echo "  push-frontend  : Push frontend image to Docker Hub"
-	@echo "  push-backend   : Push backend image to Docker Hub"
-	@echo "  push-all       : Push both images to Docker Hub"
-	@echo "  clean          : Clean up Docker images and environment files"
-	@echo "  up             : Start containers using docker-compose"
-	@echo "  down           : Stop and remove containers"
-	@echo "  logs           : View container logs"
-	@echo "  setup-ansible  : Setup Ansible inventory"
-	@echo "  run-ansible    : Run Ansible playbook"
-	@echo "  deploy         : Deploy everything"
+# Local development with docker-compose
+up:
+	@echo "Starting containers locally..."
+	docker-compose up -d
 
-.DEFAULT_GOAL := help
+down:
+	@echo "Stopping local containers..."
+	docker-compose down -v --remove-orphans
+
+logs:
+	docker-compose logs -f

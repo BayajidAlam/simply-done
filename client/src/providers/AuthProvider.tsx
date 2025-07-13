@@ -41,7 +41,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await apiService.register({ userName, email, password });
 
       // Your backend returns { acknowledged: true, insertedId: "..." }
-      if (response.data.acknowledged && response.data.insertedId) {
+      if (response.data.success && response.data.data?.userId) {
         // Registration successful, but we need to login to get the token
         await logInUser(email, password);
       } else {

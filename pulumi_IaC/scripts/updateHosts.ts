@@ -6,7 +6,6 @@ export interface StackOutputs {
   albDnsName: string;
   frontendPublicIp: string;
   mongodbPrivateIp: string;
-  backendPrivateIps: string[];
   bastionPublicIp: string;
 }
 
@@ -28,7 +27,6 @@ interface Inventory {
   };
   bastion: { hosts: { bastion1: InventoryHost } };
   frontend: { hosts: { frontend1: InventoryHost } };
-  backend: { hosts: { [key: string]: InventoryHost } };
   mongodb: { hosts: { mongo: InventoryHost } };
 }
 
@@ -64,9 +62,6 @@ export function updateInventory(outputs: StackOutputs): void {
           },
         },
       },
-      backend: {
-        hosts: {},
-      },
       mongodb: {
         hosts: {
           mongo: {
@@ -78,14 +73,6 @@ export function updateInventory(outputs: StackOutputs): void {
       },
     };
 
-    outputs.backendPrivateIps.forEach((ip, index) => {
-      inventory.backend.hosts[`backend${index + 1}`] = {
-        ansible_host: ip,
-        ansible_user: "ubuntu",
-        ansible_ssh_private_key_file: keyPath,
-      };
-    });
-
     const inventoryDir = path.resolve(__dirname, "../ansible/inventory");
     fs.mkdirSync(inventoryDir, { recursive: true });
 
@@ -94,7 +81,7 @@ export function updateInventory(outputs: StackOutputs): void {
       yaml.dump(inventory, { noRefs: true, quotingType: '"' })
     );
 
-    console.log("Updated Ansible inventory");
+    console.log("Updated Ansible inventory - Backend managed by ASG");
   } catch (error) {
     console.error("Error:", error);
     throw error;
