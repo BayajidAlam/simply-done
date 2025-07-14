@@ -19,7 +19,8 @@ server {
         add_header Cache-Control "no-cache" always;
     }
 
-    location ~ ^/(users|auth|tasks|jwt) {
+    # FIXED: Added missing routes (notes, login, health, change-password, todos)
+    location ~ ^/(users|auth|tasks|jwt|notes|login|health|change-password|todos) {
         resolver 8.8.8.8 valid=30s;  # Add DNS resolver
         
         proxy_pass http://{{ alb_dns }};

@@ -51,15 +51,7 @@
     restart_policy: always
     ports:
       - "80:80"
-    env:
-      VITE_apiKey: "AIzaSyB7Jkoyu5ROkXVDE6RxRRufIBnttbXwXtI"
-      VITE_authDomain: "scalable-todo.firebaseapp.com"
-      VITE_projectId: "scalable-todo"
-      VITE_storageBucket: "scalable-todo.firebasestorage.app"
-      VITE_messagingSenderId: "979642878265"
-      VITE_appId: "1:979642878265:web:52888103793e64d15080e8"
-      VITE_measurementId: "G-VL0SWHYCNK"
-      VITE_APP_BACKEND_ROOT_URL: "http://{{ alb_dns }}"
+    # REMOVED: env section since we're using relative URLs
     volumes:
       - /etc/simply-done/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
@@ -88,12 +80,10 @@
     var: nginx_config_test
   when: nginx_config_test.rc != 0
 
-# Fixed condition here using correct variable name
 - name: Reload nginx if configuration is valid
   command: docker exec simply-done-client nginx -s reload
   when: nginx_config_test.rc == 0 and nginx_config.changed
   
-# Add your new health check tasks here
 - name: Check ALB DNS resolution   
   command: nslookup {{ alb_dns }}   
   register: dns_check   
