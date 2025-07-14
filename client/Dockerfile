@@ -1,9 +1,16 @@
-# Stage 1: Build the frontend
+# Stage 1: Build with ARG
 FROM node:18 AS builder 
 WORKDIR /app
+
+# Add build argument
+ARG VITE_APP_BACKEND_ROOT_URL=""
+
 COPY package.json ./
 RUN yarn install
 COPY . .
+
+# Set environment variable for build
+ENV VITE_APP_BACKEND_ROOT_URL=$VITE_APP_BACKEND_ROOT_URL
 RUN yarn build
 
 # Stage 2: Serve the frontend

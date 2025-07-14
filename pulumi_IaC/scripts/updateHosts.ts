@@ -13,6 +13,7 @@ interface InventoryHost {
   ansible_host: string;
   ansible_user: string;
   ansible_ssh_private_key_file: string;
+  ansible_ssh_common_args?: string;
 }
 
 interface Inventory {
@@ -22,7 +23,6 @@ interface Inventory {
       mongodb_ip: string;
       key_file: string;
       bastion_host: string;
-      ansible_ssh_common_args: string;
     };
   };
   bastion: { hosts: { bastion1: InventoryHost } };
@@ -41,7 +41,6 @@ export function updateInventory(outputs: StackOutputs): void {
           mongodb_ip: outputs.mongodbPrivateIp,
           key_file: keyPath,
           bastion_host: outputs.bastionPublicIp,
-          ansible_ssh_common_args: `-o StrictHostKeyChecking=no -o ProxyCommand="ssh -W %h:%p -q ubuntu@${outputs.bastionPublicIp} -i ${keyPath}"`
         },
       },
       bastion: {
@@ -68,6 +67,7 @@ export function updateInventory(outputs: StackOutputs): void {
             ansible_host: outputs.mongodbPrivateIp,
             ansible_user: "ubuntu",
             ansible_ssh_private_key_file: keyPath,
+            ansible_ssh_common_args: `-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -i ${keyPath} ubuntu@${outputs.bastionPublicIp}"`
           },
         },
       },
@@ -78,12 +78,17 @@ export function updateInventory(outputs: StackOutputs): void {
 
     fs.writeFileSync(
       path.join(inventoryDir, "hosts.yml"),
-      yaml.dump(inventory, { noRefs: true, quotingType: '"' })
+      yaml.dump(inventory, { 
+        noRefs: true, 
+        quotingType: '"',
+        lineWidth: -1,  // Prevent line wrapping
+        flowLevel: -1   // Keep block style
+      })
     );
 
-    console.log("Updated Ansible inventory - Backend managed by ASG");
+    console.log("✅ Updated Ansible inventory with SSH proxy for MongoDB");
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error updating inventory:", error);
     throw error;
   }
 }

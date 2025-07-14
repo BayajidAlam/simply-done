@@ -14,6 +14,7 @@ const privateSubnet2Cidr = "10.10.4.0/24";
 const privateSubnet3Cidr = "10.10.5.0/24";
 
 //----------------------Start of the script----------------------//
+
 // VPC
 const vpc = new aws.ec2.Vpc(`vpc`, {
   cidrBlock: cidrBlock,
@@ -294,7 +295,7 @@ const ubuntuAmi = pulumi.output(
   })
 );
 
-// Use existing key pair instead of creating a new one
+// Use existing key pair - MANUAL GENERATION REQUIRED
 const keyPair = aws.ec2.KeyPair.get("existing-key", "MyKeyPair");
 
 // Frontend Security Group
@@ -602,6 +603,9 @@ export const frontendInstanceId = frontendInstance.id;
 export const bastionInstancePublicIp = bastionInstance.publicIp;
 export const mongodbInstancePrivateIp = mongodbInstance.privateIp;
 export const frontendInstancePublicIp = frontendInstance.publicIp;
+
+// Export key pair name
+export const keyPairName = keyPair.keyName;
 
 // Export your outputs
 export const outputs = {
