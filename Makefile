@@ -14,7 +14,7 @@ ENV_FILE=$(FRONTEND_DIR)/.env
 GET_ALB_DNS = $(shell cd $(PULUMI_DIR) && pulumi stack output albDnsName 2>/dev/null || echo "")
 GET_FRONTEND_IP = $(shell cd $(PULUMI_DIR) && pulumi stack output frontendInstancePublicIp 2>/dev/null || echo "")
 
-.PHONY: build-frontend build-backend push-frontend push-backend build-all push-all clean clear up down logs setup-ansible run-ansible deploy-all help redeploy-frontend
+.PHONY: build-frontend build-backend push-frontend push-backend build-all push-all clean clear up down logs setup-ansible run-ansible deploy-all help redeploy-frontend generate-nginx-config setup-frontend-env run-mongodb-playbook debug-alb
 
 # Help target
 help:
@@ -31,18 +31,27 @@ help:
 	@echo "  up             : Start containers using docker-compose (local)"
 	@echo "  down           : Stop and remove containers (local)"
 	@echo "  logs           : View container logs (local)"
+	@echo "  debug-alb      : Debug ALB DNS detection"
 
 .DEFAULT_GOAL := help
 
-# Generate nginx config from template
+# Generate nginx config from your existing template
 generate-nginx-config:
 	@ALB_DNS="$(GET_ALB_DNS)"; \
 	if [ -n "$$ALB_DNS" ] && [ "$$ALB_DNS" != "" ]; then \
 		echo "🔧 Generating nginx.conf with ALB DNS: $$ALB_DNS"; \
-		sed "s/ALB_DNS_PLACEHOLDER/$$ALB_DNS/g" $(FRONTEND_DIR)/nginx.conf.template > $(FRONTEND_DIR)/nginx.conf; \
-		echo "✅ nginx.conf generated successfully"; \
+		if [ -f "$(FRONTEND_DIR)/nginx.conf.template" ]; then \
+			sed "s/ALB_DNS_PLACEHOLDER/$$ALB_DNS/g" $(FRONTEND_DIR)/nginx.conf.template > $(FRONTEND_DIR)/nginx.conf; \
+			echo "✅ nginx.conf generated successfully from template"; \
+		else \
+			echo "❌ Error: nginx.conf.template not found in $(FRONTEND_DIR)/"; \
+			echo "💡 Expected template file: $(FRONTEND_DIR)/nginx.conf.template"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "❌ Error: Could not get ALB DNS for nginx config"; \
+		echo "💡 Make sure infrastructure is deployed first"; \
+		echo "💡 Try: cd $(PULUMI_DIR) && pulumi stack output albDnsName"; \
 		exit 1; \
 	fi
 
@@ -59,13 +68,14 @@ setup-frontend-env:
 		echo "⚠️  No ALB DNS found - using empty backend URL"; \
 		echo "💡 Make sure infrastructure is deployed first"; \
 	fi
-	
-# Build the frontend image with robust backend URL detection
+
+# Build the frontend image using your nginx template
 build-frontend: generate-nginx-config setup-frontend-env
 	@echo "Building frontend image..."
 	@ALB_DNS="$(GET_ALB_DNS)"; \
 	if [ -n "$$ALB_DNS" ] && [ "$$ALB_DNS" != "" ]; then \
 		echo "Building with backend URL: http://$$ALB_DNS"; \
+		echo "Using nginx config with proxy to: $$ALB_DNS"; \
 		docker build \
 			-t $(FRONTEND_IMAGE):latest \
 			--build-arg VITE_APP_BACKEND_ROOT_URL="http://$$ALB_DNS" \
@@ -123,13 +133,17 @@ debug-alb:
 	@echo "Debugging ALB detection..."
 	@echo "Current directory: $(shell pwd)"
 	@echo "Pulumi directory exists: $(shell test -d $(PULUMI_DIR) && echo "YES" || echo "NO")"
+	@echo "nginx.conf.template exists: $(shell test -f $(FRONTEND_DIR)/nginx.conf.template && echo "YES" || echo "NO")"
 	@echo "ALB DNS: $(GET_ALB_DNS)"
 	@echo "Frontend IP: $(GET_FRONTEND_IP)"
 	@cd $(PULUMI_DIR) && echo "Stack outputs:" && pulumi stack output
+	@echo ""
+	@echo "Template content preview:"
+	@head -10 $(FRONTEND_DIR)/nginx.conf.template 2>/dev/null || echo "Template not found"
 
-# Redeploy frontend with correct backend URL (robust version)
+# Redeploy frontend with correct backend URL using your template
 redeploy-frontend:
-	@echo "🔄 Redeploying frontend with correct backend URL..."
+	@echo "🔄 Redeploying frontend using nginx.conf.template..."
 	@ALB_DNS="$(GET_ALB_DNS)"; \
 	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
 	if [ -z "$$ALB_DNS" ] || [ "$$ALB_DNS" = "" ]; then \
@@ -143,8 +157,14 @@ redeploy-frontend:
 	fi; \
 	echo "🔗 Backend URL: http://$$ALB_DNS"; \
 	echo "🌐 Frontend IP: $$FRONTEND_IP"; \
-	echo "🔧 Generating nginx.conf with ALB DNS..."; \
-	sed "s/ALB_DNS_PLACEHOLDER/$$ALB_DNS/g" $(FRONTEND_DIR)/nginx.conf.template > $(FRONTEND_DIR)/nginx.conf; \
+	echo "🔧 Generating nginx.conf from template with ALB DNS..."; \
+	if [ -f "$(FRONTEND_DIR)/nginx.conf.template" ]; then \
+		sed "s/ALB_DNS_PLACEHOLDER/$$ALB_DNS/g" $(FRONTEND_DIR)/nginx.conf.template > $(FRONTEND_DIR)/nginx.conf; \
+		echo "✅ nginx.conf generated with proxy configuration"; \
+	else \
+		echo "❌ Error: nginx.conf.template not found"; \
+		exit 1; \
+	fi; \
 	echo "📦 Building frontend with backend URL..."; \
 	echo "# Backend API URL" > $(FRONTEND_DIR)/.env; \
 	echo "VITE_APP_BACKEND_ROOT_URL=http://$$ALB_DNS" >> $(FRONTEND_DIR)/.env; \
@@ -155,7 +175,7 @@ redeploy-frontend:
 	docker push $(FRONTEND_IMAGE):latest; \
 	echo "🚀 Updating frontend container..."; \
 	ssh -i $(PULUMI_DIR)/MyKeyPair.pem ubuntu@$$FRONTEND_IP \
-		"docker stop simply-done-client && docker rm simply-done-client && docker rmi bayajid23/simply-done-client:latest && docker pull $(FRONTEND_IMAGE):latest && docker run -d --name simply-done-client -p 80:80 $(FRONTEND_IMAGE):latest"; \
+		"docker stop simply-done-client && docker rm simply-done-client && docker pull $(FRONTEND_IMAGE):latest && docker run -d --name simply-done-client -p 80:80 $(FRONTEND_IMAGE):latest"; \
 	echo "✅ Frontend redeployed with backend URL: http://$$ALB_DNS"
 
 # MAIN DEPLOY COMMAND - Complete deployment
