@@ -1,33 +1,38 @@
-# Stage 1: Build with ARG
-FROM node:18 AS builder 
+# Stage 1: Build React app
+FROM node:18 AS builder
 WORKDIR /app
 
-# Add build argument
-ARG VITE_APP_BACKEND_ROOT_URL=""
+# Copy package files
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 
-COPY package.json ./
-RUN yarn install
+# Copy source code and build
 COPY . .
-
-# Set environment variable for build
-ENV VITE_APP_BACKEND_ROOT_URL=$VITE_APP_BACKEND_ROOT_URL
 RUN yarn build
 
-# Stage 2: Serve the frontend
+# Stage 2: Runtime with Nginx
 FROM nginx:1.25-alpine
-WORKDIR /usr/share/nginx/html
 
-# Remove default nginx static assets
-RUN rm -rf ./*
+# Install envsubst for environment variable substitution
+RUN apk add --no-cache gettext
 
-# Copy static assets from builder stage
-COPY --from=builder /app/dist .
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy built React app
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Make port 80 available to the world outside this container
+# Copy nginx configuration template
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+
+# Copy and make entrypoint script executable
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Create 50x.html error page
+RUN echo '<html><body><h1>Service Temporarily Unavailable</h1><p>Please try again later.</p></body></html>' > /usr/share/nginx/html/50x.html
+
 EXPOSE 80
 
-# Start Nginx and keep it running in the foreground
-CMD ["nginx", "-g", "daemon off;"]
+# Use our custom entrypoint
+ENTRYPOINT ["/docker-entrypoint.sh"]

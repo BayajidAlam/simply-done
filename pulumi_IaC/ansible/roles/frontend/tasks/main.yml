@@ -1,49 +1,85 @@
+---
+# File: pulumi_IaC/ansible/roles/frontend/tasks/main.yml
+# Fixed YAML syntax - no errors
+
+- name: Display deployment info
+  debug:
+    msg: |
+      🚀 Starting SimplyDone Frontend Deployment
+      ALB DNS: {{ alb_dns }}
+      Frontend Host: {{ ansible_host }}
+
 - name: Wait for Docker to be available
   wait_for:
     path: /var/run/docker.sock
     state: present
-    timeout: 30
+    timeout: 60
 
 - name: Install required packages
   apt:
     name:
       - python3-docker
       - python3-pip
+      - curl
+      - jq
     state: present
     update_cache: yes
 
-- name: Create nginx config directory
+- name: Verify ALB connectivity
+  uri:
+    url: "http://{{ alb_dns }}/health"
+    method: GET
+    timeout: 30
+  register: alb_health_check
+  retries: 5
+  delay: 10
+  ignore_errors: yes
+
+- name: Display ALB health status
+  debug:
+    msg: "ALB Health: {{ 'OK' if alb_health_check.status == 200 else 'Failed - Will retry during deployment' }}"
+
+- name: Create application directories
   file:
-    path: /etc/simply-done/nginx
+    path: "{{ item }}"
     state: directory
     mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - /etc/simply-done
+    - /etc/simply-done/nginx
+    - /var/log/simply-done
 
-- name: Create nginx config
+- name: Generate nginx configuration with ALB DNS
   template:
     src: nginx.conf.j2
     dest: /etc/simply-done/nginx/default.conf
     mode: "0644"
+    owner: root
+    group: root
   register: nginx_config
 
-- name: Stop and remove existing container
+- name: Stop existing frontend container
   docker_container:
     name: simply-done-client
     state: absent
-  ignore_errors: true
+  ignore_errors: yes
 
-- name: Remove old images
+- name: Remove old frontend images for clean deployment
   docker_image:
     name: bayajid23/simply-done-client
     state: absent
-  when: nginx_config.changed
+    force_absent: yes
+  ignore_errors: yes
 
-- name: Pull frontend image
+- name: Pull latest frontend image
   docker_image:
-    name: bayajid23/simply-done-client
+    name: bayajid23/simply-done-client:latest
     source: pull
-    force_source: true
+    force_source: yes
 
-- name: Start frontend container
+- name: Start frontend container with automatic configuration
   docker_container:
     name: simply-done-client
     image: bayajid23/simply-done-client:latest
@@ -51,57 +87,83 @@
     restart_policy: always
     ports:
       - "80:80"
-    # REMOVED: env section since we're using relative URLs
     volumes:
       - /etc/simply-done/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/log/simply-done:/var/log/nginx
+    env:
+      BACKEND_ALB_DNS: "{{ alb_dns }}"
+      DEPLOYMENT_ENV: "production"
+      NGINX_WORKER_PROCESSES: "auto"
     healthcheck:
-      test: ["CMD", "nginx", "-t"]
+      test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    log_driver: "json-file"
+    log_options:
+      max-size: "10m"
+      max-file: "3"
   register: container_status
 
-- name: Verify container is running
+- name: Wait for container to be healthy
   wait_for:
     host: localhost
     port: 80
-    timeout: 30
+    timeout: 90
     state: started
   when: container_status.changed
 
-- name: Check NGINX configuration
-  command: docker exec simply-done-client nginx -t
-  register: nginx_config_test
+- name: Verify nginx configuration in container
+  shell: docker exec simply-done-client nginx -t
+  register: nginx_test
   changed_when: false
-  ignore_errors: true
+  failed_when: nginx_test.rc != 0
 
-- name: Display NGINX configuration test results
+- name: Test frontend homepage
+  uri:
+    url: "http://localhost/"
+    method: GET
+    timeout: 15
+  register: frontend_test
+  retries: 3
+  delay: 5
+
+- name: Test API proxy functionality
+  uri:
+    url: "http://localhost/health"
+    method: GET
+    timeout: 20
+  register: api_proxy_test
+  retries: 5
+  delay: 3
+  ignore_errors: yes
+
+- name: Get container logs for debugging
+  shell: docker logs --tail 10 simply-done-client
+  register: container_logs
+  changed_when: false
+
+- name: Display deployment summary
   debug:
-    var: nginx_config_test
-  when: nginx_config_test.rc != 0
+    msg: |
+      ✅ FRONTEND DEPLOYMENT COMPLETE!
+      
+      🌐 Frontend Status: {{ 'Healthy' if frontend_test.status == 200 else 'Check needed' }}
+      🔗 API Proxy Status: {{ 'Working' if api_proxy_test.status == 200 else 'Needs verification' }}
+      🏗️ Backend ALB: {{ alb_dns }}
+      📦 Container: {{ container_status.container.Id[:12] if container_status.container is defined else 'Check status' }}
+      
+      🧪 Test URLs:
+      Frontend: http://{{ ansible_host }}/
+      API Health: http://{{ ansible_host }}/health
+      Direct Backend: http://{{ alb_dns }}/health
 
-- name: Reload nginx if configuration is valid
-  command: docker exec simply-done-client nginx -s reload
-  when: nginx_config_test.rc == 0 and nginx_config.changed
-  
-- name: Check ALB DNS resolution   
-  command: nslookup {{ alb_dns }}   
-  register: dns_check   
-  changed_when: false   
-  ignore_errors: true
+- name: Show recent container logs
+  debug:
+    msg: "{{ container_logs.stdout_lines[-5:] if container_logs.stdout_lines else ['No logs available'] }}"
 
-- name: Display DNS check results   
-  debug:     
-    var: dns_check
-
-- name: Test backend connectivity   
-  uri:     
-    url: "http://{{ alb_dns }}/health"     
-    method: GET     
-    return_content: yes   
-  register: health_check   
-  ignore_errors: true
-
-- name: Display health check results   
-  debug:     
-    var: health_check
+- name: Reload nginx if configuration changed
+  shell: docker exec simply-done-client nginx -s reload
+  when: nginx_config.changed
+  ignore_errors: yes
