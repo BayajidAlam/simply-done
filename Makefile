@@ -11,19 +11,21 @@ PULUMI_DIR=pulumi_IaC
 GET_ALB_DNS = $(shell grep -A 1 "alb_dns:" $(PULUMI_DIR)/ansible/inventory/hosts.yml 2>/dev/null | tail -1 | sed 's/.*alb_dns: //' | tr -d ' "' || echo "")
 GET_FRONTEND_IP = $(shell grep -A 3 "frontend1:" $(PULUMI_DIR)/ansible/inventory/hosts.yml 2>/dev/null | grep "ansible_host:" | sed 's/.*ansible_host: //' | tr -d ' "' || echo "")
 
-.PHONY: build-all push-all auto-deploy setup-infrastructure clean debug help
+.PHONY: build-all push-all auto-deploy setup-infrastructure clean debug help fix-frontend-connection
 
 .DEFAULT_GOAL := help
 
 help:
 	@echo "🚀 SimplyDone Fully Automated Deployment"
 	@echo "========================================"
-	@echo "  auto-deploy      : Complete hands-off deployment (recommended)"
-	@echo "  build-deploy     : Build images and deploy only"
-	@echo "  quick-redeploy   : Redeploy frontend only"
-	@echo "  debug-system     : Debug entire system status"
-	@echo "  test-deployment  : Test current deployment health"
-	@echo "  clean-all        : Clean up everything"
+	@echo "  auto-deploy          : Complete hands-off deployment (recommended)"
+	@echo "  build-deploy         : Build images and deploy only"
+	@echo "  quick-redeploy       : Redeploy frontend only"
+	@echo "  fix-frontend-connection : Fix frontend-to-ALB communication"
+	@echo "  debug-system         : Debug entire system status"
+	@echo "  test-deployment      : Test current deployment health"
+	@echo "  debug-network        : Debug network connectivity"
+	@echo "  clean-all            : Clean up everything"
 
 # Check if infrastructure is deployed and inventory is ready
 check-inventory:
@@ -48,39 +50,51 @@ check-inventory:
 	echo "   🔗 ALB DNS: $$ALB_DNS"; \
 	echo "   🌐 Frontend IP: $$FRONTEND_IP"
 
-# Build environment-agnostic Docker images
+# Build environment-agnostic Docker images with better error handling
 build-all:
 	@echo "🔨 Building environment-agnostic Docker images..."
 	@echo "📦 Building backend image..."
-	docker build -t $(BACKEND_IMAGE):latest -f $(BACKEND_DIR)/Dockerfile $(BACKEND_DIR)
+	@if ! docker build -t $(BACKEND_IMAGE):latest -f $(BACKEND_DIR)/Dockerfile $(BACKEND_DIR); then \
+		echo "❌ Backend build failed"; \
+		exit 1; \
+	fi
 	@echo "📦 Building frontend image..."
-	docker build -t $(FRONTEND_IMAGE):latest -f $(FRONTEND_DIR)/Dockerfile $(FRONTEND_DIR)
+	@if ! docker build -t $(FRONTEND_IMAGE):latest -f $(FRONTEND_DIR)/Dockerfile $(FRONTEND_DIR); then \
+		echo "❌ Frontend build failed"; \
+		exit 1; \
+	fi
 	@echo "✅ All images built successfully!"
 
-# Push images to Docker Hub
+# Push images to Docker Hub with verification
 push-all: build-all
 	@echo "📤 Pushing images to Docker Hub..."
-	docker push $(BACKEND_IMAGE):latest
-	docker push $(FRONTEND_IMAGE):latest
+	@if ! docker push $(BACKEND_IMAGE):latest; then \
+		echo "❌ Backend push failed"; \
+		exit 1; \
+	fi
+	@if ! docker push $(FRONTEND_IMAGE):latest; then \
+		echo "❌ Frontend push failed"; \
+		exit 1; \
+	fi
 	@echo "✅ All images pushed!"
 
 # Deploy AWS infrastructure and generate inventory
 setup-infrastructure:
 	@echo "🏗️ Deploying AWS infrastructure..."
-	cd $(PULUMI_DIR) && pulumi up --yes
+	@cd $(PULUMI_DIR) && pulumi up --yes
 	@echo "⏳ Waiting for instances to boot (90 seconds)..."
-	sleep 90
+	@sleep 90
 	@echo "📝 Generating Ansible inventory..."
-	cd $(PULUMI_DIR) && npm install js-yaml @types/js-yaml 2>/dev/null || true
-	cd $(PULUMI_DIR) && npx ts-node scripts/updateHosts.ts
+	@cd $(PULUMI_DIR) && npm install js-yaml @types/js-yaml 2>/dev/null || true
+	@cd $(PULUMI_DIR) && npx ts-node scripts/updateHosts.ts
 	@echo "✅ Infrastructure and inventory ready!"
 
 # Setup backend services using Ansible
 setup-backend: check-inventory
-	@echo "🗄️ Setting up MongoDB backend..."
-	ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/provision_mongodb.yml
-	@echo "⏳ Waiting for MongoDB initialization (30 seconds)..."
-	sleep 30
+	@echo "🗄️ Setting up MongoDB and backend..."
+	@ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/provision_mongodb.yml
+	@echo "⏳ Waiting for backend initialization (30 seconds)..."
+	@sleep 30
 	@echo "✅ Backend services ready!"
 
 # Deploy frontend using Ansible (automatically configures ALB)
@@ -91,6 +105,50 @@ deploy-frontend: check-inventory
 	ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/site.yml
 	@echo "✅ Frontend deployed successfully!"
 
+# Fix frontend connection to ALB
+fix-frontend-connection: check-inventory
+	@echo "🔧 Fixing frontend-to-ALB connection..."
+	@ALB_DNS="$(GET_ALB_DNS)"; \
+	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
+	echo "🔗 ALB DNS: $$ALB_DNS"; \
+	echo "🌐 Frontend IP: $$FRONTEND_IP"; \
+	echo ""; \
+	echo "Testing ALB health first..."; \
+	if curl -f -m 10 "http://$$ALB_DNS/health" 2>/dev/null; then \
+		echo "✅ ALB is healthy, proceeding with frontend fix"; \
+		ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/site.yml; \
+		echo ""; \
+		echo "🧪 Testing fixed connection..."; \
+		sleep 10; \
+		if curl -f -m 10 "http://$$FRONTEND_IP/health" 2>/dev/null; then \
+			echo "✅ Frontend now properly routing to ALB"; \
+		else \
+			echo "❌ Frontend still not routing correctly"; \
+			echo "💡 Check container logs: docker logs simply-done-client"; \
+		fi; \
+	else \
+		echo "❌ ALB is not healthy, fix backend first"; \
+		exit 1; \
+	fi
+
+# Debug network connectivity
+debug-network: check-inventory
+	@echo "🔍 Network Connectivity Debug"
+	@echo "============================="
+	@ALB_DNS="$(GET_ALB_DNS)"; \
+	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
+	echo "ALB DNS: $$ALB_DNS"; \
+	echo "Frontend IP: $$FRONTEND_IP"; \
+	echo ""; \
+	echo "🔗 Testing ALB direct access:"; \
+	curl -v "http://$$ALB_DNS/health" 2>&1 | head -20 || echo "ALB not accessible"; \
+	echo ""; \
+	echo "🌐 Testing Frontend direct access:"; \
+	curl -v "http://$$FRONTEND_IP/" 2>&1 | head -10 || echo "Frontend not accessible"; \
+	echo ""; \
+	echo "🔄 Testing Frontend API proxy:"; \
+	curl -v "http://$$FRONTEND_IP/health" 2>&1 | head -20 || echo "API proxy not working"
+
 # Complete automated deployment
 auto-deploy: push-all setup-infrastructure setup-backend deploy-frontend
 	@echo ""
@@ -98,14 +156,15 @@ auto-deploy: push-all setup-infrastructure setup-backend deploy-frontend
 	@echo "=========================="
 	@ALB_DNS="$(GET_ALB_DNS)"; \
 	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
-	echo "🔗 Backend ALB URL: http://$ALB_DNS"; \
-	echo "🌐 Frontend URL: http://$FRONTEND_IP"; \
-	echo "📊 Health Check: http://$ALB_DNS/health"; \
+	echo "🔗 Backend ALB URL: http://$$ALB_DNS"; \
+	echo "🌐 Frontend URL: http://$$FRONTEND_IP"; \
+	echo "📊 Health Check: http://$$ALB_DNS/health"; \
 	echo "🎯 Auto-scaling: 2-5 backend instances"; \
 	echo ""; \
 	echo "🧪 Testing deployment..."; \
-	curl -s "http://$ALB_DNS/health" > /dev/null 2>&1 && echo "✅ Backend: Healthy" || echo "❌ Backend: Check manually"; \
-	curl -s "http://$FRONTEND_IP/" > /dev/null 2>&1 && echo "✅ Frontend: Healthy" || echo "❌ Frontend: Check manually"
+	curl -s "http://$$ALB_DNS/health" > /dev/null 2>&1 && echo "✅ Backend: Healthy" || echo "❌ Backend: Check manually"; \
+	curl -s "http://$$FRONTEND_IP/" > /dev/null 2>&1 && echo "✅ Frontend: Healthy" || echo "❌ Frontend: Check manually"; \
+	curl -s "http://$$FRONTEND_IP/health" > /dev/null 2>&1 && echo "✅ API Proxy: Working" || echo "❌ API Proxy: Check manually"
 
 # Build and deploy without recreating infrastructure
 build-deploy: push-all setup-backend deploy-frontend
@@ -115,7 +174,7 @@ build-deploy: push-all setup-backend deploy-frontend
 quick-redeploy: check-inventory deploy-frontend
 	@echo "✅ Frontend redeployed successfully!"
 
-# Debug system status
+# Enhanced debugging with container inspection
 debug-system:
 	@echo "🔍 System Debug Information"
 	@echo "=========================="
@@ -141,27 +200,34 @@ debug-system:
 	@echo "🏗️ Pulumi Stack:"
 	@cd $(PULUMI_DIR) && pulumi stack output 2>/dev/null || echo "❌ No Pulumi stack found"
 
-# Test deployment health
+# Test deployment health with detailed output
 test-deployment: check-inventory
 	@echo "🧪 Testing deployment health..."
 	@ALB_DNS="$(GET_ALB_DNS)"; \
 	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
 	echo ""; \
-	echo "Testing backend health: http://$ALB_DNS/health"; \
-	curl -f -m 10 "http://$ALB_DNS/health" 2>/dev/null && { \
+	echo "Testing backend health: http://$$ALB_DNS/health"; \
+	if curl -f -m 10 "http://$$ALB_DNS/health" 2>/dev/null; then \
 		echo "✅ Backend is healthy"; \
-		curl -s "http://$ALB_DNS/health" | head -1; \
-	} || echo "❌ Backend health check failed"; \
+		curl -s "http://$$ALB_DNS/health" | head -1; \
+	else \
+		echo "❌ Backend health check failed"; \
+	fi; \
 	echo ""; \
-	echo "Testing frontend: http://$FRONTEND_IP/"; \
-	curl -f -m 10 "http://$FRONTEND_IP/" > /dev/null 2>&1 && \
-		echo "✅ Frontend is accessible" || \
+	echo "Testing frontend: http://$$FRONTEND_IP/"; \
+	if curl -f -m 10 "http://$$FRONTEND_IP/" > /dev/null 2>&1; then \
+		echo "✅ Frontend is accessible"; \
+	else \
 		echo "❌ Frontend access failed"; \
+	fi; \
 	echo ""; \
-	echo "Testing API proxy: http://$FRONTEND_IP/health"; \
-	curl -f -m 10 "http://$FRONTEND_IP/health" > /dev/null 2>&1 && \
-		echo "✅ API proxy is working" || \
-		echo "❌ API proxy failed"
+	echo "Testing API proxy: http://$$FRONTEND_IP/health"; \
+	if curl -f -m 10 "http://$$FRONTEND_IP/health" > /dev/null 2>&1; then \
+		echo "✅ API proxy is working"; \
+	else \
+		echo "❌ API proxy failed - This is the main issue!"; \
+		echo "💡 Run: make fix-frontend-connection"; \
+	fi
 
 # Clean up resources
 clean-all:
@@ -177,8 +243,8 @@ show-config: check-inventory
 	@echo "======================="
 	@ALB_DNS="$(GET_ALB_DNS)"; \
 	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
-	echo "Backend ALB DNS: $ALB_DNS"; \
-	echo "Frontend IP: $FRONTEND_IP"; \
+	echo "Backend ALB DNS: $$ALB_DNS"; \
+	echo "Frontend IP: $$FRONTEND_IP"; \
 	echo "Docker Images: $(FRONTEND_IMAGE):latest, $(BACKEND_IMAGE):latest"; \
 	echo "Inventory File: $(PULUMI_DIR)/ansible/inventory/hosts.yml"
 

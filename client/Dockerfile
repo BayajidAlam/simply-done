@@ -14,7 +14,7 @@ RUN yarn build
 FROM nginx:1.25-alpine
 
 # Install envsubst for environment variable substitution
-RUN apk add --no-cache gettext
+RUN apk add --no-cache gettext curl
 
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf

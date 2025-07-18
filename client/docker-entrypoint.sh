@@ -3,15 +3,15 @@ set -e
 
 echo "🚀 Starting SimplyDone Frontend with Runtime Configuration"
 
-# Get backend URL from environment variable
-BACKEND_URL=${BACKEND_URL:-"localhost:5000"}
+# Get backend URL from environment variable (ALB DNS)
+BACKEND_URL=${BACKEND_ALB_DNS:-${BACKEND_URL:-"localhost:5000"}}
 
 echo "🔧 Configuring Nginx for backend: $BACKEND_URL"
 
-# Replace placeholder with actual backend URL
-sed "s/BACKEND_URL_PLACEHOLDER/$BACKEND_URL/g" /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+# Replace placeholder with actual backend URL in nginx config
+envsubst '${BACKEND_URL}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
-echo "📁 Nginx configuration:"
+echo "📁 Generated Nginx configuration:"
 cat /etc/nginx/conf.d/default.conf
 
 # Test nginx configuration
