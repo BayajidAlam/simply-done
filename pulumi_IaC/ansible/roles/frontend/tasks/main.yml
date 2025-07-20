@@ -1,6 +1,6 @@
 ---
 # File: pulumi_IaC/ansible/roles/frontend/tasks/main.yml
-# Fixed YAML schema issues
+# Fixed to use container-based dynamic nginx configuration
 
 - name: Display deployment info
   debug:
@@ -78,6 +78,8 @@
     restart_policy: always
     ports:
       - "80:80"
+    volumes:
+      - /var/log/simply-done:/var/log/nginx
     env:
       BACKEND_ALB_DNS: "{{ alb_dns }}"
       BACKEND_URL: "{{ alb_dns }}"
@@ -156,7 +158,12 @@
   debug:
     msg: "Recent logs: {{ container_logs.stdout_lines[-10:] if container_logs.stdout_lines else ['No logs available'] }}"
 
-- name: Reload nginx if configuration changed
-  shell: docker exec simply-done-client nginx -s reload
-  when: container_status.changed
+- name: Verify container nginx configuration
+  shell: docker exec simply-done-client cat /etc/nginx/conf.d/default.conf | grep -E "(proxy_pass|server_name)"
+  register: nginx_config_check
+  changed_when: false
   ignore_errors: true
+
+- name: Display nginx configuration verification
+  debug:
+    msg: "Nginx Config Check: {{ nginx_config_check.stdout_lines if nginx_config_check.stdout_lines else ['Could not verify nginx config'] }}"
