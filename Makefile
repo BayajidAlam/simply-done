@@ -11,21 +11,21 @@ PULUMI_DIR=pulumi_IaC
 GET_ALB_DNS = $(shell grep "alb_dns:" $(PULUMI_DIR)/ansible/inventory/hosts.yml 2>/dev/null | sed 's/.*alb_dns: //' | tr -d ' "' || echo "")
 GET_FRONTEND_IP = $(shell grep -A 3 "frontend1:" $(PULUMI_DIR)/ansible/inventory/hosts.yml 2>/dev/null | grep "ansible_host:" | sed 's/.*ansible_host: //' | tr -d ' "' || echo "")
 
-.PHONY: build-all push-all auto-deploy setup-infrastructure clean debug help fix-frontend-connection
+.PHONY: build-all push-all auto-deploy setup-infrastructure clean debug help deploy-frontend-with-alb
 
 .DEFAULT_GOAL := help
 
 help:
 	@echo "🚀 SimplyDone Fully Automated Deployment"
 	@echo "========================================"
-	@echo "  auto-deploy          : Complete hands-off deployment (recommended)"
-	@echo "  build-deploy         : Build images and deploy only"
-	@echo "  quick-redeploy       : Redeploy frontend only"
-	@echo "  fix-frontend-connection : Fix frontend-to-ALB communication"
-	@echo "  debug-system         : Debug entire system status"
-	@echo "  test-deployment      : Test current deployment health"
-	@echo "  debug-network        : Debug network connectivity"
-	@echo "  clean-all            : Clean up everything"
+	@echo "  auto-deploy               : Complete hands-off deployment (recommended)"
+	@echo "  deploy-frontend-with-alb  : Deploy frontend with auto ALB DNS update"
+	@echo "  build-deploy              : Build images and deploy only"
+	@echo "  quick-redeploy            : Redeploy frontend only"
+	@echo "  debug-system              : Debug entire system status"
+	@echo "  test-deployment           : Test current deployment health"
+	@echo "  debug-network             : Debug network connectivity"
+	@echo "  clean-all                 : Clean up everything"
 
 # Check if infrastructure is deployed and inventory is ready
 check-inventory:
@@ -105,31 +105,20 @@ deploy-frontend: check-inventory
 	ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/site.yml
 	@echo "✅ Frontend deployed successfully!"
 
-# Fix frontend connection to ALB
-fix-frontend-connection: check-inventory
-	@echo "🔧 Fixing frontend-to-ALB connection..."
+# Auto-update frontend with current ALB DNS and deploy
+deploy-frontend-with-alb: check-inventory
+	@echo "🔧 Auto-updating frontend with current ALB DNS..."
 	@ALB_DNS="$(GET_ALB_DNS)"; \
-	FRONTEND_IP="$(GET_FRONTEND_IP)"; \
-	echo "🔗 ALB DNS: $$ALB_DNS"; \
-	echo "🌐 Frontend IP: $$FRONTEND_IP"; \
-	echo ""; \
-	echo "Testing ALB health first..."; \
-	if curl -f -m 10 "http://$$ALB_DNS/health" 2>/dev/null; then \
-		echo "✅ ALB is healthy, proceeding with frontend fix"; \
-		ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/site.yml; \
-		echo ""; \
-		echo "🧪 Testing fixed connection..."; \
-		sleep 10; \
-		if curl -f -m 10 "http://$$FRONTEND_IP/health" 2>/dev/null; then \
-			echo "✅ Frontend now properly routing to ALB"; \
-		else \
-			echo "❌ Frontend still not routing correctly"; \
-			echo "💡 Check container logs: docker logs simply-done-client"; \
-		fi; \
-	else \
-		echo "❌ ALB is not healthy, fix backend first"; \
-		exit 1; \
-	fi
+	echo "🔗 Current ALB DNS: $$ALB_DNS"; \
+	echo "VITE_APP_BACKEND_ROOT_URL=http://$$ALB_DNS" > $(FRONTEND_DIR)/.env; \
+	echo "✅ Updated $(FRONTEND_DIR)/.env with ALB DNS"; \
+	echo "🔨 Building frontend with new ALB DNS..."; \
+	docker build -t $(FRONTEND_IMAGE):latest -f $(FRONTEND_DIR)/Dockerfile $(FRONTEND_DIR); \
+	echo "📤 Pushing updated frontend..."; \
+	docker push $(FRONTEND_IMAGE):latest; \
+	echo "🌐 Deploying frontend..."; \
+	ansible-playbook -i $(PULUMI_DIR)/ansible/inventory/hosts.yml $(PULUMI_DIR)/ansible/site.yml; \
+	echo "✅ Frontend deployed with ALB DNS: $$ALB_DNS"
 
 # Debug network connectivity
 debug-network: check-inventory
@@ -149,8 +138,8 @@ debug-network: check-inventory
 	echo "🔄 Testing Frontend API proxy:"; \
 	curl -v "http://$$FRONTEND_IP/health" 2>&1 | head -20 || echo "API proxy not working"
 
-# Complete automated deployment
-auto-deploy: push-all setup-infrastructure setup-backend deploy-frontend
+# Complete automated deployment with ALB DNS auto-update
+auto-deploy: setup-infrastructure setup-backend deploy-frontend-with-alb
 	@echo ""
 	@echo "🎉 DEPLOYMENT COMPLETE! 🎉"
 	@echo "=========================="
@@ -162,16 +151,14 @@ auto-deploy: push-all setup-infrastructure setup-backend deploy-frontend
 	echo "🎯 Auto-scaling: 2-5 backend instances"; \
 	echo ""; \
 	echo "🧪 Testing deployment..."; \
-	curl -s "http://$$ALB_DNS/health" > /dev/null 2>&1 && echo "✅ Backend: Healthy" || echo "❌ Backend: Check manually"; \
-	curl -s "http://$$FRONTEND_IP/" > /dev/null 2>&1 && echo "✅ Frontend: Healthy" || echo "❌ Frontend: Check manually"; \
-	curl -s "http://$$FRONTEND_IP/health" > /dev/null 2>&1 && echo "✅ API Proxy: Working" || echo "❌ API Proxy: Check manually"
+	make test-deployment
 
 # Build and deploy without recreating infrastructure
-build-deploy: push-all setup-backend deploy-frontend
+build-deploy: push-all setup-backend deploy-frontend-with-alb
 	@echo "✅ Build and deploy complete!"
 
 # Quick redeploy frontend only
-quick-redeploy: check-inventory deploy-frontend
+quick-redeploy: check-inventory deploy-frontend-with-alb
 	@echo "✅ Frontend redeployed successfully!"
 
 # Enhanced debugging with container inspection
@@ -221,12 +208,11 @@ test-deployment: check-inventory
 		echo "❌ Frontend access failed"; \
 	fi; \
 	echo ""; \
-	echo "Testing API proxy: http://$$FRONTEND_IP/health"; \
-	if curl -f -m 10 "http://$$FRONTEND_IP/health" > /dev/null 2>&1; then \
-		echo "✅ API proxy is working"; \
+	echo "Testing direct ALB from frontend:"; \
+	if curl -f -m 10 "http://$$ALB_DNS/health" > /dev/null 2>&1; then \
+		echo "✅ Direct ALB access is working"; \
 	else \
-		echo "❌ API proxy failed - This is the main issue!"; \
-		echo "💡 Run: make fix-frontend-connection"; \
+		echo "❌ Direct ALB access failed"; \
 	fi
 
 # Clean up resources
@@ -246,8 +232,21 @@ show-config: check-inventory
 	echo "Backend ALB DNS: $$ALB_DNS"; \
 	echo "Frontend IP: $$FRONTEND_IP"; \
 	echo "Docker Images: $(FRONTEND_IMAGE):latest, $(BACKEND_IMAGE):latest"; \
-	echo "Inventory File: $(PULUMI_DIR)/ansible/inventory/hosts.yml"
+	echo "Inventory File: $(PULUMI_DIR)/ansible/inventory/hosts.yml"; \
+	echo ""; \
+	echo "Current .env content:"; \
+	cat $(FRONTEND_DIR)/.env 2>/dev/null || echo "No .env file found"
 
 # Emergency fix - redeploy everything quickly
-emergency-redeploy: build-all push-all deploy-frontend
+emergency-redeploy: build-all push-all deploy-frontend-with-alb
 	@echo "🚑 Emergency redeployment complete!"
+
+# Update just the frontend .env without deploying
+update-env-only: check-inventory
+	@echo "📝 Updating frontend .env file only..."
+	@ALB_DNS="$(GET_ALB_DNS)"; \
+	echo "VITE_APP_BACKEND_ROOT_URL=http://$$ALB_DNS" > $(FRONTEND_DIR)/.env; \
+	echo "✅ Updated $(FRONTEND_DIR)/.env with ALB DNS: $$ALB_DNS"; \
+	echo ""; \
+	echo "📋 Current .env content:"; \
+	cat $(FRONTEND_DIR)/.env
