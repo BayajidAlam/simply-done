@@ -32,6 +32,7 @@ import {
   unauthorized,
   conflict,
 } from "./utils/response";
+import getMongoUri from "./utils/connectDb";
 
 const app = express();
 const port = config.PORT;
@@ -44,25 +45,48 @@ app.use(
   })
 );
 
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, Accept"
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
+
 app.use(express.json());
 
-// MongoDB connection
-const uri = `mongodb+srv://${config.DB_USER}:${config.DB_PASS}@cluster0.38cdqne.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = getMongoUri();
+console.log(
+  `🔗 Database: ${
+    uri.includes("mongodb+srv") ? "Atlas (Dev)" : "Local MongoDB (Prod)"
+  }`
+);
+console.log(
+  `📍 IP Management: ${
+    process.env.MONGODB_URI ? "Automated via Pulumi→Ansible" : "Manual .env"
+  }`
+);
 
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+  serverApi: uri.includes("mongodb+srv")
+    ? {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
+    : undefined,
 });
+
 
 async function run(): Promise<void> {
   try {
     await client.connect();
     console.log("Connected to MongoDB");
 
-    const db: Db = client.db("scalable_todo");
+    const db: Db = client.db("simplyDone");
     const usersCollection: Collection<User> = db.collection("users");
     const notesCollection: Collection<INoteTypes> = db.collection("notes");
 
