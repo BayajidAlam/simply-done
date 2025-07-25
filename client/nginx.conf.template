@@ -15,7 +15,7 @@ server {
     }
 
     # Proxy API requests to ALB (using environment variable)
-    location ~ ^/(users|login|change-password|todos|health|auth|tasks|jwt|notes|api|register) {
+    location ~ ^/(users|health|auth|tasks|jwt|notes|todos|api) {
         # Use ALB DNS from environment variable
         proxy_pass http://${BACKEND_URL};
         proxy_http_version 1.1;
