@@ -33,7 +33,7 @@ The frontend will be containerized and deployed to EC2, remaining independent of
 
 The SimplyDone Notes & To-Do Application consists of three main components:
 
-<img width="1247" height="590" alt="Screenshot from 2025-07-27 22-55-25" src="https://github.com/user-attachments/assets/dbd83402-f4e9-474b-94b2-ff34a4f4a1ad" />
+<img width="1369" height="620" alt="Screenshot from 2025-07-28 02-01-32" src="https://github.com/user-attachments/assets/3787643f-4565-4a9a-9ad9-a02d40cba8b1" />
 
 
 
