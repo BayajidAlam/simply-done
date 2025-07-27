@@ -33,7 +33,8 @@ The frontend will be containerized and deployed to EC2, remaining independent of
 
 The SimplyDone Notes & To-Do Application consists of three main components:
 
-![Architecture Diagram](https://github.com/user-attachments/assets/b4f68403-313a-415b-b6c6-3ba8b2535dde)
+<img width="1247" height="590" alt="image" src="https://github.com/user-attachments/assets/12d2d342-42c8-4078-b355-e1bdb1d594e0" />
+
 
 **1. Frontend:**
 - A React.js application with TypeScript that provides an intuitive interface for managing Notes and To-Do tasks
